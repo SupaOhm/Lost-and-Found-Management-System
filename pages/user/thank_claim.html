@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Submitted Confirmation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        .thank-you-container {
+            min-height: calc(100vh - var(--header-height));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .thank-you-box {
+            max-width: 450px;
+            padding: 50px;
+            background-color: var(--secondary-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .thank-you-box h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .thank-you-box p {
+            font-size: 1rem;
+            color: #555;
+            margin-top: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .btn-return {
+            background-color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 10px 30px;
+            color: white;
+        }
+        
+        .btn-return:hover {
+            background-color: var(--color-7);
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header shadow-sm">
+        <div class="container-fluid py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="Main.html" class="logo mb-0">Lost&Found</a>
+                <div class="d-flex align-items-center gap-3">
+                    <a href="Main.html" class="btn btn-light btn-sm d-flex align-items-center gap-1 rounded-pill border">
+                        <i class="bi bi-house-door-fill"></i> Dashboard
+                    </a>
+                    <div class="profile-icon"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="thank-you-container">
+        <div class="thank-you-box">
+            <h2>Thanks your information</h2>
+            <p>please wait admin approve</p>
+            <a href="Main.html" class="btn btn-return">
+                <i class="bi bi-arrow-left me-2"></i>Return to Dashboard
+            </a>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
