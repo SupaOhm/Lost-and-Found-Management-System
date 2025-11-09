@@ -1,71 +1,65 @@
 CREATE DATABASE IF NOT EXISTS lost_found_db;
 USE lost_found_db;
 
-
-
--- TABLE 1: USERS
-CREATE TABLE users (
+-- USER TABLE
+CREATE TABLE User (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
+    email VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-
-
--- TABLE 2: ADMINS
-CREATE TABLE admins (
-    admin_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
-
--- TABLE 3: LOST ITEMS
-CREATE TABLE lost_items (
+-- LOST ITEM TABLE
+CREATE TABLE LostItem (
     lost_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
     item_name VARCHAR(100) NOT NULL,
     description TEXT,
     category VARCHAR(50),
+    location VARCHAR(100),
     lost_date DATE,
-    location VARCHAR(255),
-    status ENUM('lost','found','claimed') DEFAULT 'lost',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+    status ENUM('pending', 'claimed') DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES User(user_id)
 );
 
+-- ADMIN TABLE
+CREATE TABLE Admin (
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
-
--- TABLE 4: FOUND ITEMS
-CREATE TABLE found_items (
+-- FOUND ITEM TABLE
+CREATE TABLE FoundItem (
     found_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
     item_name VARCHAR(100) NOT NULL,
     description TEXT,
     category VARCHAR(50),
+    location VARCHAR(100),
     found_date DATE,
-    location VARCHAR(255),
-    status ENUM('available','claimed') DEFAULT 'available',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+    status ENUM('available', 'returned') DEFAULT 'available',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES User(user_id)
 );
 
-
-
--- TABLE 5: CLAIMS
-CREATE TABLE claims (
+-- CLAIM REQUEST TABLE
+CREATE TABLE ClaimRequest (
     claim_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    lost_id INT,
     found_id INT,
-    reason TEXT,
-    claim_status ENUM('pending','approved','rejected') DEFAULT 'pending',
-    claim_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (found_id) REFERENCES found_items(found_id) ON DELETE CASCADE
+    user_id INT,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    claim_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    approved_by INT NULL,
+    approved_date DATETIME NULL,
+    FOREIGN KEY (lost_id) REFERENCES LostItem(lost_id),
+    FOREIGN KEY (found_id) REFERENCES FoundItem(found_id),
+    FOREIGN KEY (user_id) REFERENCES User(user_id),
+    FOREIGN KEY (approved_by) REFERENCES Admin(admin_id)
 );
