@@ -33,44 +33,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             if ($userType === 'user') {
-                // Check if email already exists
-                $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
+                // Check if email already exists using stored procedure
+                $stmt = $pdo->prepare("CALL CheckEmailExists(?)");
                 $stmt->execute([$email]);
-                if ($stmt->rowCount() > 0) {
+                $exists = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor(); // Close the cursor
+                
+                if ($exists) {
                     $error = 'Email already registered';
                 } else {
-                    // Hash password and insert new user
+                    // Hash password and insert new user using stored procedure
                     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("INSERT INTO users (full_name, email, password, phone) VALUES (?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("CALL RegisterUser(?, ?, ?, ?)");
                     $stmt->execute([$fullName, $email, $hashedPassword, $phone]);
+                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $stmt->closeCursor(); // Close the cursor
                     
-                    // Log the user in after registration
-                    $userId = $pdo->lastInsertId();
-                    $_SESSION['user_id'] = $userId;
-                    $_SESSION['full_name'] = $fullName;
-                    $_SESSION['email'] = $email;
-                    
-                    $success = 'Registration successful! Redirecting...';
-                    header('Refresh: 2; URL=user/userdash.html');
+                    if ($result && isset($result['user_id'])) {
+                        // Log the user in after registration
+                        $_SESSION['user_id'] = $result['user_id'];
+                        $_SESSION['username'] = $fullName;
+                        $_SESSION['email'] = $email;
+                        
+                        $success = 'Registration successful! Redirecting...';
+                        header('Refresh: 2; URL=user/userdash.php');
+                    } else {
+                        $error = 'Failed to register user. Please try again.';
+                    }
                 }
             } else { // admin registration (for demo purposes only - in production, this should be restricted)
-                $stmt = $pdo->prepare("SELECT admin_id FROM admins WHERE username = ?");
+                // Check if admin username exists using stored procedure
+                $stmt = $pdo->prepare("CALL CheckAdminUsernameExists(?)");
                 $stmt->execute([$email]);
-                if ($stmt->rowCount() > 0) {
+                $adminExists = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor(); // Close the cursor
+                
+                if ($adminExists) {
                     $error = 'Username already exists';
                 } else {
                     // In a real application, admin registration should be restricted
                     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("INSERT INTO admins (username, password, full_name) VALUES (?, ?, ?)");
+                    $stmt = $pdo->prepare("CALL RegisterAdmin(?, ?, ?)");
                     $stmt->execute([$email, $hashedPassword, $fullName]);
+                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $stmt->closeCursor(); // Close the cursor
                     
-                    $adminId = $pdo->lastInsertId();
-                    $_SESSION['admin_id'] = $adminId;
-                    $_SESSION['full_name'] = $fullName;
-                    $_SESSION['username'] = $email;
-                    
-                    $success = 'Admin registration successful! Redirecting...';
-                    header('Refresh: 2; URL=admin/admindash.html');
+                    if ($result && isset($result['admin_id'])) {
+                        $_SESSION['admin_id'] = $result['admin_id'];
+                        $_SESSION['username'] = $email;
+                        
+                        $success = 'Admin registration successful! Redirecting...';
+                        header('Refresh: 2; URL=admin/admindash.php');
+                    } else {
+                        $error = 'Failed to register admin. Please try again.';
+                    }
                 }
             }
         } catch (PDOException $e) {

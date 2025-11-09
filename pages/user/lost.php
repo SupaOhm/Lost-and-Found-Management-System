@@ -191,6 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <div class="text-end">
                                 <a href="userdash.php" class="btn btn-outline-secondary me-2">Cancel</a>
+                                <br><br>
                                 <button type="submit" class="btn btn-form-submit">Submit Report</button>
                             </div>
                         </form>
@@ -199,53 +200,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Set max date to today for date input
-        document.addEventListener('DOMContentLoaded', function() {
-            const dateInput = document.getElementById('date');
-            if (dateInput && !dateInput.value) {
-                dateInput.valueAsDate = new Date();
-            }
-            
-            // Image preview
-            const imageInput = document.getElementById('itemImage');
-            const imagePreview = document.getElementById('imagePreview');
-            
-            if (imageInput) {
-                imageInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) {
-                        if (!imagePreview) {
-                            const previewContainer = document.createElement('div');
-                            previewContainer.id = 'imagePreview';
-                            previewContainer.className = 'mt-2';
-                            imageInput.parentNode.insertBefore(previewContainer, imageInput.nextSibling);
-                        }
-                        
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            const img = document.createElement('img');
-                            img.src = event.target.result;
-                            img.className = 'img-thumbnail';
-                            img.style.maxHeight = '200px';
-                            
-                            const previewContainer = document.getElementById('imagePreview');
-                            previewContainer.innerHTML = '';
-                            previewContainer.appendChild(img);
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            }
-        });
-    </script>
 </body>
 </html>

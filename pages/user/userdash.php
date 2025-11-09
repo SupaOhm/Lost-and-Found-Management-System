@@ -12,12 +12,13 @@ if (!isset($_SESSION['user_id'])) {
 // Get user data
 $user_name = 'User';
 try {
-    $stmt = $pdo->prepare("SELECT full_name FROM users WHERE user_id = ?");
+    $stmt = $pdo->prepare("CALL GetUserById(?)");
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
     if ($user) {
-        $user_name = $user['full_name'];
+        $user_name = $user['username'];
     }
+    $stmt->closeCursor(); // Close the cursor after fetching the result
 } catch (PDOException $e) {
     // Log error but don't break the page
     error_log("Database error: " . $e->getMessage());

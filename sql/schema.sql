@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS lost_found_db;
 CREATE DATABASE IF NOT EXISTS lost_found_db;
 USE lost_found_db;
 

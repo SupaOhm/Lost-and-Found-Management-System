@@ -1,19 +1,37 @@
 delimiter $$
 
+-- =============================================
+-- USER MANAGEMENT PROCEDURES
+-- =============================================
 
--- PROCEDURE: Register New User
+-- Get User by ID
+CREATE PROCEDURE GetUserById(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT user_id, username, email, phone, created_at
+    FROM User 
+    WHERE user_id = p_user_id;
+END$$
+
+-- Register New User
 CREATE PROCEDURE RegisterUser(
     IN p_username VARCHAR(50),
-    IN p_password VARCHAR(255),
     IN p_email VARCHAR(100),
+    IN p_password VARCHAR(255),
     IN p_phone VARCHAR(20)
 )
 BEGIN
-    INSERT INTO User (username, password, email, phone)
-    VALUES (p_username, p_password, p_email, p_phone);
+    DECLARE user_id INT;
+    
+    INSERT INTO User (username, email, password, phone)
+    VALUES (p_username, p_email, p_password, p_phone);
+    
+    SET user_id = LAST_INSERT_ID();
+    SELECT user_id;
 END$$
 
--- PROCEDURE: User Login
+-- User Login
 CREATE PROCEDURE LoginUser(
     IN p_username VARCHAR(50),
     IN p_password VARCHAR(255)
@@ -24,8 +42,34 @@ BEGIN
     WHERE username = p_username AND password = p_password;
 END$$
 
+-- Check if email exists
+CREATE PROCEDURE CheckEmailExists(
+    IN p_email VARCHAR(100)
+)
+BEGIN
+    SELECT user_id FROM User WHERE email = p_email;
+END$$
 
--- PROCEDURE: Report Lost Item
+-- Update User Profile
+CREATE PROCEDURE UpdateUserProfile(
+    IN p_user_id INT,
+    IN p_username VARCHAR(50),
+    IN p_email VARCHAR(100),
+    IN p_phone VARCHAR(20)
+)
+BEGIN
+    UPDATE User 
+    SET username = p_username,
+        email = p_email,
+        phone = p_phone
+    WHERE user_id = p_user_id;
+END$$
+
+-- =============================================
+-- LOST & FOUND ITEMS PROCEDURES
+-- =============================================
+
+-- Report Lost Item
 CREATE PROCEDURE ReportLostItem(
     IN p_user_id INT,
     IN p_item_name VARCHAR(100),
@@ -39,7 +83,7 @@ BEGIN
     VALUES (p_user_id, p_item_name, p_description, p_category, p_location, p_lost_date);
 END$$
 
--- PROCEDURE: Report Found Item
+-- Report Found Item
 CREATE PROCEDURE ReportFoundItem(
     IN p_user_id INT,
     IN p_item_name VARCHAR(100),
@@ -53,20 +97,39 @@ BEGIN
     VALUES (p_user_id, p_item_name, p_description, p_category, p_location, p_found_date);
 END$$
 
--- PROCEDURE: View Lost Items
+-- View Lost Items
 CREATE PROCEDURE ViewLostItems()
 BEGIN
     SELECT * FROM LostItem ORDER BY created_at DESC;
 END$$
 
--- PROCEDURE: View Found Items
+-- View Found Items
 CREATE PROCEDURE ViewFoundItems()
 BEGIN
     SELECT * FROM FoundItem ORDER BY created_at DESC;
 END$$
 
+-- Get User's Lost Items Count
+CREATE PROCEDURE GetUserLostItemsCount(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT COUNT(*) as total FROM LostItem WHERE user_id = p_user_id;
+END$$
 
--- PROCEDURE: Submit Claim Request
+-- Get User's Found Items Count
+CREATE PROCEDURE GetUserFoundItemsCount(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT COUNT(*) as total FROM FoundItem WHERE user_id = p_user_id;
+END$$
+
+-- =============================================
+-- CLAIM MANAGEMENT PROCEDURES
+-- =============================================
+
+-- Submit Claim Request
 CREATE PROCEDURE SubmitClaimRequest(
     IN p_lost_id INT,
     IN p_found_id INT,
@@ -77,7 +140,7 @@ BEGIN
     VALUES (p_lost_id, p_found_id, p_user_id);
 END$$
 
--- PROCEDURE: View Claim Requests by User
+-- View Claim Requests by User
 CREATE PROCEDURE ViewUserClaims(
     IN p_user_id INT
 )
@@ -90,7 +153,7 @@ BEGIN
     ORDER BY c.claim_date DESC;
 END$$
 
--- PROCEDURE: View Pending Claims (Admin)
+-- View Pending Claims (Admin)
 CREATE PROCEDURE ViewPendingClaims()
 BEGIN
     SELECT c.claim_id, u.username AS requester, l.item_name AS lost_item, f.item_name AS found_item, c.status, c.claim_date
@@ -102,7 +165,7 @@ BEGIN
     ORDER BY c.claim_date DESC;
 END$$
 
--- PROCEDURE: Approve Claim (Admin)
+-- Approve Claim (Admin)
 CREATE PROCEDURE ApproveClaim(
     IN p_claim_id INT,
     IN p_admin_id INT
@@ -115,7 +178,7 @@ BEGIN
     WHERE claim_id = p_claim_id;
 END$$
 
--- PROCEDURE: Reject Claim (Admin)
+-- Reject Claim (Admin)
 CREATE PROCEDURE RejectClaim(
     IN p_claim_id INT,
     IN p_admin_id INT
@@ -128,7 +191,36 @@ BEGIN
     WHERE claim_id = p_claim_id;
 END$$
 
--- TRIGGER: Auto Update Item Status on Claim Approval
+-- =============================================
+-- ADMIN MANAGEMENT PROCEDURES
+-- =============================================
+
+-- Check if admin username exists
+CREATE PROCEDURE CheckAdminUsernameExists(
+    IN p_username VARCHAR(50)
+)
+BEGIN
+    SELECT admin_id FROM Admin WHERE username = p_username;
+END$$
+
+-- Register new admin
+CREATE PROCEDURE RegisterAdmin(
+    IN p_username VARCHAR(50),
+    IN p_password VARCHAR(255),
+    IN p_full_name VARCHAR(100)
+)
+BEGIN
+    INSERT INTO Admin (username, password, full_name)
+    VALUES (p_username, p_password, p_full_name);
+    
+    SELECT LAST_INSERT_ID() as admin_id;
+END$$
+
+-- =============================================
+-- TRIGGERS
+-- =============================================
+
+-- Auto Update Item Status on Claim Approval
 CREATE TRIGGER AfterClaimApproved
 AFTER UPDATE ON ClaimRequest
 FOR EACH ROW
@@ -139,7 +231,7 @@ BEGIN
     END IF;
 END$$
 
--- TRIGGER: Reset Item Status if Claim Rejected
+-- Reset Item Status if Claim Rejected
 CREATE TRIGGER AfterClaimRejected
 AFTER UPDATE ON ClaimRequest
 FOR EACH ROW
