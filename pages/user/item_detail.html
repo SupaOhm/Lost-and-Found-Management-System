@@ -7,15 +7,15 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
     <header class="app-header shadow-sm">
         <div class="container-fluid py-3">
             <div class="d-flex justify-content-between align-items-center">
-                <a href="Main.html" class="logo mb-0">Lost&Found</a>
+                <a href="userdash.html" class="logo mb-0">Lost&Found</a>
                 <div class="d-flex align-items-center gap-3">
-                    <a href="Main.html" class="btn btn-light btn-sm d-flex align-items-center gap-1 rounded-pill border">
+                    <a href="userdash.html" class="btn btn-light btn-sm d-flex align-items-center gap-1 rounded-pill border">
                         <i class="bi bi-house-door-fill"></i> Dashboard
                     </a>
                     <div class="profile-icon"></div>
@@ -25,7 +25,7 @@
     </header>
 
     <main class="container my-5 pt-3">
-        <a href="Search.html" class="btn btn-link text-dark mb-4">
+        <a href="search.html" class="btn btn-link text-dark mb-4">
             <i class="bi bi-arrow-left"></i> Back to Search
         </a>
 
@@ -35,83 +35,5 @@
             <!-- Item details will be loaded here -->
         </div>
     </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const itemId = urlParams.get('id');
-            const items = getItems('all', '');
-            const item = items.find(i => i.id === itemId);
-            
-            const itemDetails = document.getElementById('itemDetails');
-            
-            if (!item) {
-                itemDetails.innerHTML = `
-                    <div class="text-center">
-                        <h4 class="text-muted">Item not found</h4>
-                        <p class="text-muted">The item you're looking for doesn't exist or has been removed.</p>
-                        <a href="Search.html" class="btn btn-form-submit">Back to Search</a>
-                    </div>
-                `;
-                return;
-            }
-            
-            itemDetails.innerHTML = `
-                <!-- Item Details -->
-                <div class="mb-4">
-                    <span class="item-status ${item.type === 'lost' ? 'status-lost-badge' : 'status-found-badge'}">
-                        ${item.type.toUpperCase()}
-                    </span>
-                    <h3 class="mb-2 fw-bold">${item.itemName}</h3>
-                    <p class="text-muted">${item.description}</p>
-                    <div class="d-flex gap-4 flex-wrap">
-                        <div class="d-flex align-items-center gap-1 text-muted">
-                            <span class="icon">📦</span><span>${item.category}</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-1 text-muted">
-                            <span class="icon">📍</span><span>${item.location}</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-1 text-muted">
-                            <span class="icon">📅</span><span>${new Date(item.date).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Claim Form -->
-                <form id="claimForm">
-                    <div class="mb-4">
-                        <label for="claimReason" class="form-label fw-bold">Provide details that prove this item is yours:</label>
-                        <textarea class="form-control" id="claimReason" name="claimReason" rows="6" placeholder="e.g., Describe unique features, serial numbers, or specific details that prove ownership..." required></textarea>
-                    </div>
-
-                    <div class="text-end">
-                        <a href="Search.html" class="btn btn-outline-secondary px-4 py-2 me-2 rounded-3">Cancel</a>
-                        <button type="submit" class="btn btn-dark px-4 py-2 rounded-3">Submit Claim</button>
-                    </div>
-                </form>
-            `;
-            
-            // Add form submission handler
-            const claimForm = document.getElementById('claimForm');
-            if (claimForm) {
-                claimForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const claimData = {
-                        itemId: itemId,
-                        itemName: item.itemName,
-                        reason: document.getElementById('claimReason').value,
-                        contactInfo: 'user@example.com'
-                    };
-                    
-                    if (submitClaim(claimData)) {
-                        window.location.href = 'thank_claim.html';
-                    }
-                });
-            }
-        });
-    </script>
 </body>
 </html>
