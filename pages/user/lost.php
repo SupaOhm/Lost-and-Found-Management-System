@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../../config/db.php';
+require_once '../../includes/functions.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -8,68 +9,63 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Get user data
+// Initialize variables
+$error = '';
+$success = '';
 $user_name = 'User';
+
+// Get user data
 try {
-    $pdo = new PDO("mysql:host=localhost;port=8889;dbname=lost_found_db", 'root', 'root');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->prepare("SELECT full_name FROM users WHERE user_id = ?");
+    $stmt = $pdo->prepare("CALL GetUserById(?)");
     $stmt->execute([$_SESSION['user_id']]);
-    $user = $stmt->fetch();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($user) {
         $user_name = $user['full_name'];
     }
 } catch (PDOException $e) {
-    // Log error but don't break the page
     error_log("Database error: " . $e->getMessage());
 }
-
-$error = '';
-$success = '';
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $pdo = getDbConnection();
-        
-        // Validate and sanitize input
-        $itemName = filter_input(INPUT_POST, 'itemName', FILTER_SANITIZE_STRING);
-        $category = filter_input(INPUT_POST, 'category', FILTER_SANITIZE_STRING);
-        $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_STRING);
-        $dateLost = filter_input(INPUT_POST, 'date', FILTER_SANITIZE_STRING);
-        $location = filter_input(INPUT_POST, 'location', FILTER_SANITIZE_STRING);
-        $userId = $_SESSION['user_id'];
-        
-        // Handle file upload
-        $imagePath = null;
-        if (isset($_FILES['itemImage']) && $_FILES['itemImage']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = '../../uploads/items/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-            
-            $fileExtension = pathinfo($_FILES['itemImage']['name'], PATHINFO_EXTENSION);
-            $fileName = uniqid('item_') . '.' . $fileExtension;
-            $targetPath = $uploadDir . $fileName;
-            
-            if (move_uploaded_file($_FILES['itemImage']['tmp_name'], $targetPath)) {
-                $imagePath = 'uploads/items/' . $fileName;
+        // Validate required fields
+        $required = ['itemName', 'category', 'description', 'date', 'location'];
+        foreach ($required as $field) {
+            if (empty($_POST[$field])) {
+                throw new Exception("Please fill in all required fields.");
             }
         }
         
-        // Insert into database
-        $stmt = $pdo->prepare("INSERT INTO lost_items (user_id, item_name, category, description, date_lost, location, image_path, status, created_at) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())");
-        $stmt->execute([$userId, $itemName, $category, $description, $dateLost, $location, $imagePath]);
+        // Sanitize input
+        $itemName = sanitize_input($_POST['itemName']);
+        $category = sanitize_input($_POST['category']);
+        $description = sanitize_input($_POST['description']);
+        $dateLost = $_POST['date']; // Already validated as date
+        $location = sanitize_input($_POST['location']);
+        $userId = $_SESSION['user_id'];
+        
+        // No image upload functionality as per request
+        
+        // Use stored procedure to insert lost item
+        $stmt = $pdo->prepare("CALL ReportLostItem(?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $userId,
+            $itemName,
+            $description,
+            $category,
+            $location,
+            $dateLost
+        ]);
         
         $success = 'Your lost item has been reported successfully!';
         
         // Clear form
-        $_POST = array();
+        $_POST = [];
         
-    } catch (PDOException $e) {
-        $error = 'An error occurred while processing your request. Please try again.';
-        error_log('Database Error: ' . $e->getMessage());
+    } catch (Exception $e) {
+        $error = $e->getMessage();
+        error_log('Error in lost.php: ' . $error);
     }
 }
 ?>
@@ -82,65 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/Lost-Found/assets/style.css">
-    <style>
-        .form-card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        .form-title {
-            font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 0.5rem;
-        }
-        .btn-form-submit {
-            background-color: #4a6cf7;
-            color: white;
-            font-weight: 600;
-            padding: 0.5rem 2rem;
-            border-radius: 8px;
-            border: none;
-        }
-        .btn-form-submit:hover {
-            background-color: #3a5bd9;
-            color: white;
-        }
-        .profile-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #f0f2f5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        .dashboard-btn {
-            color: #4a6cf7;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .app-header {
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #ffffffff;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .logo-icon {
-            color: #ffffffff;
-            font-size: 1.8rem;
-        }
-    </style>
+    <link rel="stylesheet" href="../../assets/style.css">
 </head>
 <body>
     <!-- Header -->
@@ -152,28 +90,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Lost&Found
                 </a>
                 <div class="d-flex align-items-center gap-3">
-                    <a href="userdash.php" class="btn btn-outline-secondary btn-sm me-2">
-                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    <a href="userdash.php" class="dashboard-btn d-flex align-items-center gap-2">
+                        <i class="bi bi-house-door-fill"></i> Dashboard
                     </a>
                     <div class="dropdown">
-                        <button class="btn btn-link text-decoration-none p-0 border-0 bg-transparent dropdown-toggle d-flex align-items-center" 
-                                type="button" 
-                                id="userDropdown" 
-                                data-bs-toggle="dropdown" 
-                                aria-expanded="false">
-                            <div class="profile-icon me-2">
-                                <i class="bi bi-person-fill"></i>
-                            </div>
-                            <span class="d-none d-md-inline"><?php echo htmlspecialchars($user_name); ?></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li class="user-email" title="<?php echo htmlspecialchars($user_email); ?>">
-                                <?php echo htmlspecialchars($user_email); ?>
-                            </li>
-                            <li><hr class="dropdown-divider m-0"></li>
+                        <div class="profile-icon" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                             <li><a class="dropdown-item" href="userprofile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-clipboard-check me-2"></i>My Claims</a></li>
-                            <li><hr class="dropdown-divider m-0"></li>
+                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-card-checklist me-2"></i>My Claims</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
                     </div>
@@ -215,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </a>
                         </div>
 
-                        <form id="lostForm" action="lost.php" method="POST" enctype="multipart/form-data">
+                        <form id="lostForm" action="lost.php" method="POST">
                             <div class="mb-4">
                                 <label for="itemName" class="form-label fw-semibold">Item Name</label>
                                 <input type="text" class="form-control" id="itemName" name="itemName" 
@@ -245,12 +172,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                           placeholder="Describe your item in detail including color, brand, size, unique features, contents, etc." 
                                           required><?php echo isset($_POST['description']) ? htmlspecialchars($_POST['description']) : ''; ?></textarea>
                                 <div class="form-text">Be as detailed as possible to help identify your item.</div>
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="itemImage" class="form-label fw-semibold">Upload Image (Optional)</label>
-                                <input class="form-control" type="file" id="itemImage" name="itemImage" accept="image/*">
-                                <div class="form-text">Upload a clear photo of the item (Max 5MB, JPG, PNG, or GIF)</div>
                             </div>
 
                             <div class="row mb-4">

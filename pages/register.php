@@ -88,41 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/style.css">
-    <style>
-        .form-container {
-            max-width: 600px;
-            margin: 30px auto;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-            background: white;
-        }
-        .form-title {
-            text-align: center;
-            margin-bottom: 2rem;
-            color: #333;
-        }
-        .btn-group-sm > .btn {
-            padding: 0.25rem 1rem;
-            font-size: 0.875rem;
-        }
-        .btn-form-submit {
-            width: 100%;
-            padding: 0.75rem;
-            font-weight: 600;
-            background-color: #0d6efd;
-            border: none;
-            border-radius: 30px;
-        }
-        .btn-form-submit:hover {
-            background-color: #0b5ed7;
-        }
-        .form-text {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-    </style>
+    <link rel="stylesheet" href="/Lost-Found/assets/style.css">
 </head>
 <body>
     <div class="container">

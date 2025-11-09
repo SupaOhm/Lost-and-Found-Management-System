@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../../config/db.php';
+require_once '../../includes/functions.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -11,50 +12,57 @@ if (!isset($_SESSION['user_id'])) {
 // Initialize variables
 $searchQuery = isset($_GET['q']) ? trim($_GET['q']) : '';
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
+$category = isset($_GET['category']) ? $_GET['category'] : '';
+$location = isset($_GET['location']) ? $_GET['location'] : '';
 $items = [];
+$error = '';
 
 try {
-    // Include the database configuration
-    require_once '../../config/db.php';
-    
-    // Base query for both lost and found items
-    $query = "SELECT 'lost' as type, item_id, user_id, item_name, category, description, 
-                     date_lost as item_date, location, image_path, status, created_at 
-              FROM lost_items 
-              WHERE status = 'pending'
-              
-              UNION ALL
-              
-              SELECT 'found' as type, item_id, user_id, item_name, category, description, 
-                     found_date as item_date, location, image_path, status, created_at 
-              FROM found_items 
-              WHERE status = 'available'
-              
-              ORDER BY created_at DESC";
-    
-    $stmt = $pdo->prepare($query);
-    $stmt->execute();
-    $allItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Apply filters
-    $items = array_filter($allItems, function($item) use ($filter, $searchQuery) {
-        // Apply type filter
-        if ($filter !== 'all' && $item['type'] !== $filter) {
-            return false;
-        }
+    // Determine which stored procedure to call based on filters
+    if (!empty($searchQuery) || !empty($category) || !empty($location)) {
+        // Use advanced search with filters
+        $stmt = $pdo->prepare("CALL SearchItems(?, ?, ?, ?)");
+        $searchTerm = !empty($searchQuery) ? "%$searchQuery%" : null;
+        $categoryFilter = !empty($category) ? $category : null;
+        $locationFilter = !empty($location) ? "%$location%" : null;
         
-        // Apply search query
-        if (!empty($searchQuery)) {
-            $searchableText = strtolower($item['item_name'] . ' ' . $item['description'] . ' ' . $item['category'] . ' ' . $item['location']);
-            return (strpos($searchableText, strtolower($searchQuery)) !== false);
-        }
-        
-        return true;
-    });
+        $stmt->execute([
+            $searchTerm,
+            $categoryFilter,
+            $locationFilter,
+            $filter === 'all' ? null : $filter
+        ]);
+    } else if ($filter !== 'all') {
+        // Filter by type only
+        $stmt = $pdo->prepare("CALL GetItemsByType(?)");
+        $stmt->execute([$filter]);
+    } else {
+        // Get all active items
+        $stmt = $pdo->query("CALL GetAllActiveItems()");
+    }
+    
+    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get distinct categories for filter
+    $categoryStmt = $pdo->query("CALL GetItemCategories()");
+    $categories = $categoryStmt->fetchAll(PDO::FETCH_COLUMN);
     
 } catch (PDOException $e) {
     error_log('Database Error: ' . $e->getMessage());
-    $error = 'An error occurred while loading items. Please try again later.';
+    $error = 'An error occurred while searching. Please try again later.';
+}
+
+// Function to highlight search terms in text
+function highlightSearchTerms($text, $searchQuery) {
+    if (empty($searchQuery)) return $text;
+    $searchTerms = explode(' ', $searchQuery);
+    foreach ($searchTerms as $term) {
+        $term = trim($term);
+        if (!empty($term)) {
+            $text = preg_replace("/($term)/i", '<span class="highlight">$1</span>', $text);
+        }
+    }
+    return $text;
 }
 ?>
 <!DOCTYPE html>
@@ -67,108 +75,7 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/Lost-Found/assets/style.css">
-    <style>
-        .search-input-group {
-            position: relative;
-            max-width: 700px;
-        }
-        .search-icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-            font-size: 1.1rem;
-        }
-        #searchInput {
-            padding-left: 45px;
-            border-radius: 8px;
-            height: 50px;
-            font-size: 1rem;
-            border: 1px solid #dee2e6;
-        }
-        .filter-button {
-            padding: 0.5rem 1.5rem;
-            border: 1px solid #dee2e6;
-            background: white;
-            border-radius: 50px;
-            font-weight: 500;
-            color: #495057;
-            transition: all 0.2s;
-        }
-        .filter-button:hover, .filter-button.active {
-            background-color: #4a6cf7;
-            color: white;
-            border-color: #4a6cf7;
-        }
-        .item-card {
-            border: none;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
-            height: 100%;
-        }
-        .item-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        }
-        .item-image {
-            height: 200px;
-            object-fit: cover;
-            width: 100%;
-        }
-        .item-type {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .item-type.lost {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        .item-type.found {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .item-category {
-            color: #6c757d;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-        .item-date {
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-        .item-location {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        .btn-view-details {
-            background-color: #4a6cf7;
-            color: white;
-            font-weight: 500;
-            padding: 0.5rem 1.5rem;
-            border-radius: 8px;
-            border: none;
-            transition: background-color 0.2s;
-        }
-        .btn-view-details:hover {
-            background-color: #3a5bd9;
-            color: white;
-        }
-        .no-items-icon {
-            font-size: 5rem;
-            color: #dee2e6;
-            margin-bottom: 1.5rem;
-        }
-    </style>
+    
 </head>
 <body>
     <header class="app-header">
@@ -187,8 +94,8 @@ try {
                             <i class="bi bi-person-fill"></i>
                         </div>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                            <li><a class="dropdown-item" href="profile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><a class="dropdown-item" href="my_claims.php"><i class="bi bi-card-checklist me-2"></i>My Claims</a></li>
+                            <li><a class="dropdown-item" href="userprofile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-card-checklist me-2"></i>My Claims</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>

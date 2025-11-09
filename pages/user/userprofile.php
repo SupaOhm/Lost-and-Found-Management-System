@@ -1,6 +1,7 @@
 <?php
-// Include database connection
+// Include database connection and functions
 require_once('../../config/db.php');
+require_once('../../includes/functions.php');
 
 // Start session and check if user is logged in
 session_start();
@@ -9,41 +10,83 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Get user data
+// Initialize variables
 $user = [];
 $error = '';
+$success = '';
+
+// Handle form submission for profile update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
+    try {
+        $full_name = sanitize_input($_POST['full_name']);
+        $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
+        $phone = sanitize_phone($_POST['phone']);
+        
+        // Call stored procedure to update user profile
+        $stmt = $pdo->prepare("CALL UpdateUserProfile(?, ?, ?, ?)");
+        $stmt->execute([$_SESSION['user_id'], $email, $full_name, $phone]);
+        
+        $success = 'Profile updated successfully!';
+    } catch (PDOException $e) {
+        $error = 'Error updating profile: ' . $e->getMessage();
+        error_log("Profile update error: " . $e->getMessage());
+    }
+}
+
+// Handle password change
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
+    try {
+        $current_password = $_POST['current_password'];
+        $new_password = $_POST['new_password'];
+        $confirm_password = $_POST['confirm_password'];
+        
+        if ($new_password !== $confirm_password) {
+            throw new Exception("New passwords do not match");
+        }
+        
+        // Verify current password
+        $stmt = $pdo->prepare("SELECT password FROM User WHERE user_id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch();
+        
+        if (!password_verify($current_password, $user['password'])) {
+            throw new Exception("Current password is incorrect");
+        }
+        
+        // Update password
+        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("UPDATE User SET password = ? WHERE user_id = ?");
+        $stmt->execute([$hashed_password, $_SESSION['user_id']]);
+        
+        $success = 'Password updated successfully!';
+    } catch (Exception $e) {
+        $error = 'Error changing password: ' . $e->getMessage();
+    }
+}
+
+// Get user data
 try {
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ?");
+    $stmt = $pdo->prepare("CALL GetUserById(?)");
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$user) {
         throw new Exception("User not found");
     }
-} catch (Exception $e) {
-    $error = "Error: " . $e->getMessage();
-    error_log("Profile error: " . $e->getMessage());
-}
-
-// Get user stats
-try {
-    // Get user's lost items count
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM lost_items WHERE user_id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    $lostItems = $stmt->fetch()['count'];
     
-    // Get user's found items count
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM found_items WHERE user_id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    $foundItems = $stmt->fetch()['count'];
+    // Get user stats using stored procedures
+    $stmt = $pdo->query("CALL GetUserLostItemsCount(" . $_SESSION['user_id'] . ")");
+    $lostItems = $stmt->fetch()['total'];
     
-    // Get user's claims count
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM claims WHERE user_id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    $claimsCount = $stmt->fetch()['count'];
+    $stmt = $pdo->query("CALL GetUserFoundItemsCount(" . $_SESSION['user_id'] . ")");
+    $foundItems = $stmt->fetch()['total'];
+    
+    $stmt = $pdo->query("CALL GetUserClaimsCount(" . $_SESSION['user_id'] . ")");
+    $claimsCount = $stmt->fetch()['total'];
     
 } catch (PDOException $e) {
-    error_log("Stats error: " . $e->getMessage());
+    $error = "Error: " . $e->getMessage();
+    error_log("Profile error: " . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
@@ -56,99 +99,6 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/Lost-Found/assets/style.css">
-    <style>
-        .profile-header {
-            background-color: #ffffff;
-            border-radius: 10px;
-            padding: 3rem 2rem;
-            margin: 2rem 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .profile-avatar {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background-color: #f0f2f5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            font-size: 3rem;
-            color: #6c757d;
-        }
-        .profile-stats {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin: 2rem 0;
-        }
-        .stat-card {
-            text-align: center;
-            padding: 1.5rem;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            flex: 1;
-            max-width: 200px;
-        }
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #4361ee;
-            margin-bottom: 0.5rem;
-        }
-        .stat-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        .profile-info {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .info-item {
-            display: flex;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #eee;
-        }
-        .info-label {
-            font-weight: 600;
-            color: #495057;
-            min-width: 120px;
-        }
-        .info-value {
-            color: #212529;
-            flex: 1;
-        }
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 3rem;
-            color: #6c757d;
-        }
-        .profile-details {
-            background: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        .detail-item {
-            padding: 1rem 0;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-        }
-        .detail-item:last-child {
-            border-bottom: none;
-        }
-        .detail-label {
-            font-weight: 600;
-            color: #495057;
-            min-width: 150px;
-        }
-        .detail-value {
-            color: #212529;
-        }
-    </style>
 </head>
 <body>
     <!-- Header -->
@@ -160,28 +110,17 @@ try {
                     Lost&Found
                 </a>
                 <div class="d-flex align-items-center gap-3">
-                    <a href="userdash.php" class="btn btn-outline-light btn-sm me-2">
-                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    <a href="userdash.php" class="dashboard-btn d-flex align-items-center gap-2">
+                        <i class="bi bi-house-door-fill"></i> Dashboard
                     </a>
                     <div class="dropdown">
-                        <button class="btn btn-link text-decoration-none p-0 border-0 bg-transparent dropdown-toggle d-flex align-items-center" 
-                                type="button" 
-                                id="userDropdown" 
-                                data-bs-toggle="dropdown" 
-                                aria-expanded="false">
-                            <div class="profile-icon me-2">
-                                <i class="bi bi-person-fill"></i>
-                            </div>
-                            <span id="usernameDisplay" class="d-none d-md-inline"><?php echo htmlspecialchars($user['full_name']); ?></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li class="user-email" title="<?php echo htmlspecialchars($user['email']); ?>">
-                                <?php echo htmlspecialchars($user['email']); ?>
-                            </li>
-                            <li><hr class="dropdown-divider m-0"></li>
+                        <div class="profile-icon" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                             <li><a class="dropdown-item" href="userprofile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-clipboard-check me-2"></i>My Claims</a></li>
-                            <li><hr class="dropdown-divider m-0"></li>
+                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-card-checklist me-2"></i>My Claims</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
                     </div>
