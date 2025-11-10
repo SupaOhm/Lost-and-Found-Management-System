@@ -192,6 +192,141 @@ BEGIN
 END$$
 
 -- =============================================
+-- SEARCH FUNCTIONALITY PROCEDURES
+-- =============================================
+
+-- Get all active items (both lost and found)
+CREATE PROCEDURE GetAllActiveItems()
+BEGIN
+    SELECT 
+        'lost' as type,
+        lost_id as id,
+        item_name,
+        description,
+        category,
+        location,
+        lost_date as item_date,
+        created_at
+    FROM LostItem
+    WHERE status = 'pending'
+    
+    UNION ALL
+    
+    SELECT 
+        'found' as type,
+        found_id as id,
+        item_name,
+        description,
+        category,
+        location,
+        found_date as item_date,
+        created_at
+    FROM FoundItem
+    WHERE status = 'available'
+    
+    ORDER BY created_at DESC;
+END$$
+
+-- Search items with filters
+CREATE PROCEDURE SearchItems(
+    IN p_search_term TEXT,
+    IN p_category VARCHAR(50),
+    IN p_location VARCHAR(100),
+    IN p_type VARCHAR(10) -- 'lost', 'found', or NULL for both
+)
+BEGIN
+    SELECT 
+        'lost' as type,
+        lost_id as id,
+        item_name,
+        description,
+        category,
+        location,
+        lost_date as item_date,
+        created_at
+    FROM LostItem
+    WHERE status = 'pending'
+    AND (p_type IS NULL OR p_type = 'lost')
+    AND (p_search_term IS NULL 
+         OR item_name LIKE p_search_term 
+         OR description LIKE p_search_term
+         OR category LIKE p_search_term
+         OR location LIKE p_search_term)
+    AND (p_category IS NULL OR category = p_category)
+    AND (p_location IS NULL OR location LIKE p_location)
+    
+    UNION ALL
+    
+    SELECT 
+        'found' as type,
+        found_id as id,
+        item_name,
+        description,
+        category,
+        location,
+        found_date as item_date,
+        created_at
+    FROM FoundItem
+    WHERE status = 'available'
+    AND (p_type IS NULL OR p_type = 'found')
+    AND (p_search_term IS NULL 
+         OR item_name LIKE p_search_term 
+         OR description LIKE p_search_term
+         OR category LIKE p_search_term
+         OR location LIKE p_search_term)
+    AND (p_category IS NULL OR category = p_category)
+    AND (p_location IS NULL OR location LIKE p_location)
+    
+    ORDER BY created_at DESC;
+END$$
+
+-- Get items by type (lost or found)
+CREATE PROCEDURE GetItemsByType(
+    IN p_type VARCHAR(10) -- 'lost' or 'found'
+)
+BEGIN
+    IF p_type = 'lost' THEN
+        SELECT 
+            'lost' as type,
+            lost_id as id,
+            item_name,
+            description,
+            category,
+            location,
+            lost_date as item_date,
+            created_at
+        FROM LostItem
+        WHERE status = 'pending'
+        ORDER BY created_at DESC;
+    ELSE
+        SELECT 
+            'found' as type,
+            found_id as id,
+            item_name,
+            description,
+            category,
+            location,
+            found_date as item_date,
+            created_at
+        FROM FoundItem
+        WHERE status = 'available'
+        ORDER BY created_at DESC;
+    END IF;
+END$$
+
+-- Get distinct categories for filter
+CREATE PROCEDURE GetItemCategories()
+BEGIN
+    SELECT DISTINCT category 
+    FROM (
+        SELECT category FROM LostItem WHERE category IS NOT NULL
+        UNION 
+        SELECT category FROM FoundItem WHERE category IS NOT NULL
+    ) AS categories
+    ORDER BY category;
+END$$
+
+-- =============================================
 -- ADMIN MANAGEMENT PROCEDURES
 -- =============================================
 
@@ -207,11 +342,11 @@ END$$
 CREATE PROCEDURE RegisterAdmin(
     IN p_username VARCHAR(50),
     IN p_password VARCHAR(255),
-    IN p_full_name VARCHAR(100)
+    IN p_email VARCHAR(100)
 )
 BEGIN
-    INSERT INTO Admin (username, password, full_name)
-    VALUES (p_username, p_password, p_full_name);
+    INSERT INTO Admin (username, password, email)
+    VALUES (p_username, p_password, p_email);
     
     SELECT LAST_INSERT_ID() as admin_id;
 END$$
@@ -243,3 +378,5 @@ BEGIN
 END$$
 
 delimiter ;
+
+select * from `User`;
