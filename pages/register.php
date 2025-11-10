@@ -74,15 +74,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // In a real application, admin registration should be restricted
                     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                     $stmt = $pdo->prepare("CALL RegisterAdmin(?, ?, ?)");
-                    $stmt->execute([$email, $hashedPassword, $fullName]);
+                    $stmt->execute([$email, $hashedPassword, $email]); // Using email as username for admin
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
                     $stmt->closeCursor(); // Close the cursor
                     
                     if ($result && isset($result['admin_id'])) {
+                        // Log the admin in after registration
                         $_SESSION['admin_id'] = $result['admin_id'];
                         $_SESSION['username'] = $email;
+                        $_SESSION['is_admin'] = true;
                         
-                        $success = 'Admin registration successful! Redirecting...';
+                        $success = 'Admin registration successful! Redirecting to dashboard...';
                         header('Refresh: 2; URL=admin/admindash.php');
                     } else {
                         $error = 'Failed to register admin. Please try again.';

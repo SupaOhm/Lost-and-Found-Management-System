@@ -33,20 +33,23 @@ $stats = [
 
 try {
     // Get lost items count
-    $stmt = $pdo->query("SELECT COUNT(*) as count FROM lost_items");
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM LostItem");
     $result = $stmt->fetch();
     $stats['lost_items'] = $result['count'];
+    $stmt->closeCursor();
     
     // Get found items count
-    $stmt = $pdo->query("SELECT COUNT(*) as count FROM found_items");
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM FoundItem");
     $result = $stmt->fetch();
     $stats['found_items'] = $result['count'];
+    $stmt->closeCursor();
     
     // Get user's claims count
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM claims WHERE user_id = ?");
+    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM ClaimRequest WHERE user_id = ?");
     $stmt->execute([$_SESSION['user_id']]);
     $result = $stmt->fetch();
     $stats['my_claims'] = $result['count'];
+    $stmt->closeCursor();
     
 } catch (PDOException $e) {
     // Log error but don't break the page

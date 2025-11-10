@@ -17,7 +17,15 @@ $location = isset($_GET['location']) ? $_GET['location'] : '';
 $items = [];
 $error = '';
 
+// Debug: Log request parameters
+error_log('Search Parameters - Query: ' . $searchQuery . ', Filter: ' . $filter . ', Category: ' . $category . ', Location: ' . $location);
+
 try {
+    // Close any open cursor first
+    if (isset($stmt) && $stmt) {
+        $stmt->closeCursor();
+    }
+
     // Determine which stored procedure to call based on filters
     if (!empty($searchQuery) || !empty($category) || !empty($location)) {
         // Use advanced search with filters
@@ -42,14 +50,37 @@ try {
     }
     
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
     
     // Get distinct categories for filter
     $categoryStmt = $pdo->query("CALL GetItemCategories()");
     $categories = $categoryStmt->fetchAll(PDO::FETCH_COLUMN);
+    $categoryStmt->closeCursor();
     
+    // Debug: Log the number of items found
+    error_log('Number of items found: ' . count($items));
+    error_log('First item: ' . print_r(!empty($items) ? $items[0] : 'No items', true));
+
 } catch (PDOException $e) {
-    error_log('Database Error: ' . $e->getMessage());
-    $error = 'An error occurred while searching. Please try again later.';
+    // Log detailed error information
+    $errorDetails = 'Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine();
+    error_log('Search Error: ' . $errorDetails);
+    
+    // For debugging - show detailed error to admin
+    $isAdmin = true; // Set to true to see detailed errors
+    $error = $isAdmin ? $errorDetails : 'An error occurred while searching. Please try again later.';
+    
+    // Log the last executed query if available
+    if (isset($stmt)) {
+        error_log('Last query: ' . $stmt->queryString);
+        error_log('Query params: ' . print_r($stmt->debugDumpParams(), true));
+    }
+    
+    // Log PDO error info
+    if (isset($pdo)) {
+        $errorInfo = $pdo->errorInfo();
+        error_log('PDO Error Info: ' . print_r($errorInfo, true));
+    }
 }
 
 // Function to highlight search terms in text
@@ -132,12 +163,86 @@ function highlightSearchTerms($text, $searchQuery) {
             <button class="filter-button <?php echo $filter === 'lost' ? 'active' : ''; ?>" data-filter="lost">Lost Items</button>
             <button class="filter-button <?php echo $filter === 'found' ? 'active' : ''; ?>" data-filter="found">Found Items</button>
         </div>
-
+        <!-- 
         <?php if (isset($error)): ?>
             <div class="alert alert-danger">
-                <?php echo htmlspecialchars($error); ?>
+                <h4>Error Details:</h4>
+                <pre><?php echo htmlspecialchars($error); ?></pre>
+                <p class="mt-2">Please check the following:</p>
+                <ul>
+                    <li>Are you logged in? (User ID: <?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'Not logged in'; ?>)</li>
+                    <li>Is the database connected? <?php echo isset($pdo) ? 'Yes' : 'No'; ?></li>
+                    <li>Number of items found: <?php echo is_array($items) ? count($items) : '0 (items is not an array)'; ?></li>
+                </ul>
             </div>
-        <?php elseif (empty($items)): ?>
+        <?php endif; ?>
+        -->
+
+        <?php if (is_array($items) && !empty($items)): // Show items if we have them ?>
+            <div class="list-group mb-4">
+                <?php 
+                foreach ($items as $item): 
+                    // Ensure all required fields have values
+                    $item = array_merge([
+                        'type' => 'unknown',
+                        'id' => 0,
+                        'item_name' => 'Untitled Item',
+                        'description' => 'No description available',
+                        'category' => 'Uncategorized',
+                        'location' => 'Location not specified',
+                        'item_date' => date('Y-m-d'),
+                        'created_at' => date('Y-m-d H:i:s')
+                    ], $item);
+                    
+                    // Format dates
+                    $itemDate = date('M j, Y', strtotime($item['item_date']));
+                    $createdAt = date('M j, Y g:i A', strtotime($item['created_at']));
+                ?>
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">
+                                <span class="badge bg-<?php echo $item['type'] === 'lost' ? 'danger' : 'success'; ?> me-2">
+                                    <?php echo ucfirst(htmlspecialchars($item['type'])); ?>
+                                </span>
+                                <?php echo htmlspecialchars($item['item_name']); ?>
+                            </h5>
+                            <small class="text-muted">Reported on <?php echo $createdAt; ?></small>
+                        </div>
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div class="me-3">
+                                <p class="mb-1">
+                                    <i class="bi bi-tag-fill text-muted me-1"></i>
+                                    <span class="text-muted">Category:</span> 
+                                    <?php echo htmlspecialchars($item['category']); ?>
+                                </p>
+                                <p class="mb-1">
+                                    <i class="bi bi-geo-alt-fill text-muted me-1"></i>
+                                    <span class="text-muted">Location:</span> 
+                                    <?php echo htmlspecialchars($item['location']); ?>
+                                </p>
+                                <p class="mb-1">
+                                    <i class="bi bi-calendar-event text-muted me-1"></i>
+                                    <span class="text-muted">
+                                        <?php echo $item['type'] === 'lost' ? 'Lost' : 'Found'; ?> on:
+                                    </span> 
+                                    <?php echo $itemDate; ?>
+                                </p>
+                                <?php if (!empty($item['description'])): ?>
+                                    <p class="mb-0 mt-2">
+                                        <i class="bi bi-chat-square-text text-muted me-1"></i>
+                                        <?php echo htmlspecialchars($item['description']); ?>
+                                    </p>
+                                <?php endif; ?>
+                            </div>
+                            <a href="item_detail.php?type=<?php echo htmlspecialchars($item['type']); ?>&id=<?php echo htmlspecialchars($item['id']); ?>" 
+                               class="btn btn-sm btn-outline-primary">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: // Show no items message ?>
             <div id="noItemsMessage" class="text-center mt-5">
                 <div class="py-5">
                     <i class="bi bi-search no-items-icon"></i>
@@ -158,58 +263,6 @@ function highlightSearchTerms($text, $searchQuery) {
                         <a href="found.php" class="btn btn-outline-primary">Report Found Item</a>
                     </div>
                 </div>
-            </div>
-        <?php else: ?>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="itemGrid">
-                <?php foreach ($items as $item): ?>
-                    <div class="col">
-                        <div class="card item-card h-100">
-                            <div class="position-relative">
-                                <?php if (!empty($item['image_path'])): ?>
-                                    <img src="/Lost-Found/<?php echo htmlspecialchars($item['image_path']); ?>" class="card-img-top item-image" alt="<?php echo htmlspecialchars($item['item_name']); ?>">
-                                <?php else: ?>
-                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
-                                    </div>
-                                <?php endif; ?>
-                                <span class="item-type <?php echo $item['type']; ?>">
-                                    <?php echo ucfirst($item['type']); ?>
-                                </span>
-                            </div>
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title mb-1"><?php echo htmlspecialchars($item['item_name']); ?></h5>
-                                <div class="item-category">
-                                    <i class="bi bi-tag-fill me-1"></i> 
-                                    <?php echo htmlspecialchars($item['category']); ?>
-                                </div>
-                                <p class="card-text flex-grow-1">
-                                    <?php 
-                                    $description = $item['description'];
-                                    if (strlen($description) > 100) {
-                                        $description = substr($description, 0, 100) . '...';
-                                    }
-                                    echo htmlspecialchars($description);
-                                    ?>
-                                </p>
-                                <div class="d-flex justify-content-between align-items-center mt-auto">
-                                    <div>
-                                        <div class="item-location">
-                                            <i class="bi bi-geo-alt-fill me-1"></i> 
-                                            <?php echo htmlspecialchars($item['location']); ?>
-                                        </div>
-                                        <div class="item-date">
-                                            <i class="bi bi-calendar-event me-1"></i> 
-                                            <?php echo date('M j, Y', strtotime($item['item_date'])); ?>
-                                        </div>
-                                    </div>
-                                    <a href="item_detail.php?type=<?php echo $item['type']; ?>&id=<?php echo $item['item_id']; ?>" class="btn btn-view-details">
-                                        View Details
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
             </div>
         <?php endif; ?>
     </main>

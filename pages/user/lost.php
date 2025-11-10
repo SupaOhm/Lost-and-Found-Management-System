@@ -20,8 +20,9 @@ try {
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($user) {
-        $user_name = $user['full_name'];
+        $user_name = $user['username'];
     }
+    $stmt->closeCursor();
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());
 }
@@ -29,6 +30,16 @@ try {
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        // Verify user exists
+        $stmt = $pdo->prepare("SELECT user_id FROM User WHERE user_id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $userExists = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        
+        if (!$userExists) {
+            throw new Exception("User not found. Please log in again.");
+        }
+        
         // Validate required fields
         $required = ['itemName', 'category', 'description', 'date', 'location'];
         foreach ($required as $field) {
@@ -45,23 +56,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $location = sanitize_input($_POST['location']);
         $userId = $_SESSION['user_id'];
         
-        // No image upload functionality as per request
+        // Begin transaction
+        $pdo->beginTransaction();
         
-        // Use stored procedure to insert lost item
-        $stmt = $pdo->prepare("CALL ReportLostItem(?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $userId,
-            $itemName,
-            $description,
-            $category,
-            $location,
-            $dateLost
-        ]);
-        
-        $success = 'Your lost item has been reported successfully!';
-        
-        // Clear form
-        $_POST = [];
+        try {
+            // Use stored procedure to insert lost item
+            $stmt = $pdo->prepare("CALL ReportLostItem(?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $userId,
+                $itemName,
+                $description,
+                $category,
+                $location,
+                $dateLost
+            ]);
+            $stmt->closeCursor();
+            
+            // Commit the transaction
+            $pdo->commit();
+            
+            $success = 'Your lost item has been reported successfully!';
+            
+            // Clear form
+            $_POST = [];
+            
+        } catch (PDOException $e) {
+            // Rollback the transaction on error
+            $pdo->rollBack();
+            throw $e;
+        }
         
     } catch (Exception $e) {
         $error = $e->getMessage();

@@ -36,15 +36,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Invalid email or password';
             }
         } else { // admin
-            $stmt = $pdo->prepare("SELECT admin_id, username, full_name, password FROM Admin WHERE username = ?");
+            $stmt = $pdo->prepare("SELECT admin_id, username, email, password FROM Admin WHERE username = ?");
             $stmt->execute([$email]);
             $admin = $stmt->fetch();
             
             if ($admin && password_verify($password, $admin['password'])) {
                 $_SESSION['admin_id'] = $admin['admin_id'];
-                $_SESSION['full_name'] = $admin['full_name'];
                 $_SESSION['username'] = $admin['username'];
-                header('Location: admin/admindash.html');
+                $_SESSION['email'] = $admin['email'];
+                $_SESSION['is_admin'] = true;
+                header('Location: admin/admindash.php');
                 exit();
             } else {
                 $error = 'Invalid username or password';
