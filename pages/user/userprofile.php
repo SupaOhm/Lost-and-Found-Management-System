@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         // Call stored procedure to update user profile
         $stmt = $pdo->prepare("CALL UpdateUserProfile(?, ?, ?, ?)");
         $stmt->execute([$_SESSION['user_id'], $email, $full_name, $phone]);
+        $stmt->closeCursor();
         
         $success = 'Profile updated successfully!';
     } catch (PDOException $e) {
@@ -48,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
         $stmt = $pdo->prepare("SELECT password FROM User WHERE user_id = ?");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
+        $stmt->closeCursor();
         
         if (!password_verify($current_password, $user['password'])) {
             throw new Exception("Current password is incorrect");
@@ -57,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("UPDATE User SET password = ? WHERE user_id = ?");
         $stmt->execute([$hashed_password, $_SESSION['user_id']]);
+        $stmt->closeCursor();
         
         $success = 'Password updated successfully!';
     } catch (Exception $e) {
@@ -69,6 +72,7 @@ try {
     $stmt = $pdo->prepare("CALL GetUserById(?)");
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
     
     if (!$user) {
         throw new Exception("User not found");
@@ -77,12 +81,15 @@ try {
     // Get user stats using stored procedures
     $stmt = $pdo->query("CALL GetUserLostItemsCount(" . $_SESSION['user_id'] . ")");
     $lostItems = $stmt->fetch()['total'];
+    $stmt->closeCursor();
     
     $stmt = $pdo->query("CALL GetUserFoundItemsCount(" . $_SESSION['user_id'] . ")");
     $foundItems = $stmt->fetch()['total'];
+    $stmt->closeCursor();
     
     $stmt = $pdo->query("CALL GetUserClaimsCount(" . $_SESSION['user_id'] . ")");
     $claimsCount = $stmt->fetch()['total'];
+    $stmt->closeCursor();
     
 } catch (PDOException $e) {
     $error = "Error: " . $e->getMessage();
@@ -98,7 +105,7 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/Lost-Found/assets/style.css">
+    <link rel="stylesheet" href="../../assets/style.css">
 </head>
 <body>
     <!-- Header -->
@@ -137,7 +144,7 @@ try {
                 <div class="profile-avatar">
                     <i class="bi bi-person"></i>
                 </div>
-                <h2 class="mb-2"><?php echo htmlspecialchars($user['full_name']); ?></h2>
+                <h2 class="mb-2"><?php echo htmlspecialchars($user['username']); ?></h2>
                 <p class="text-muted mb-4">Member since <?php echo date('F Y', strtotime($user['created_at'])); ?></p>
                 
                 <!-- Stats Cards -->
@@ -159,8 +166,8 @@ try {
                 <div class="profile-info mt-5 text-start">
                     <h4 class="mb-4">Account Information</h4>
                     <div class="info-item">
-                        <div class="info-label">Full Name:</div>
-                        <div class="info-value"><?php echo htmlspecialchars($user['full_name']); ?></div>
+                        <div class="info-label">Username:</div>
+                        <div class="info-value"><?php echo htmlspecialchars($user['username']); ?></div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Email:</div>
@@ -183,10 +190,10 @@ try {
                 
                 <div class="detail-item">
                     <div class="detail-label">
-                        <i class="bi bi-person me-2"></i>Full Name
+                        <i class="bi bi-person me-2"></i>Username
                     </div>
                     <div class="detail-value">
-                        <?php echo htmlspecialchars($user['full_name']); ?>
+                        <?php echo htmlspecialchars($user['username']); ?>
                     </div>
                 </div>
                 

@@ -65,7 +65,7 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/Lost-Found/assets/style.css">
+    <link rel="stylesheet" href="../../assets/style.css">
 </head>
 
 <body>
@@ -91,7 +91,7 @@ try {
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="userprofile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-clipboard-check me-2"></i>My Claims</a></li>
+                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-clipboard-check me-2"></i>My Claims & Reports</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
@@ -160,7 +160,7 @@ try {
                 <div class="col-md-4">
                     <div class="stat-card">
                         <div class="stat-number"><?php echo number_format($stats['my_claims']); ?></div>
-                        <div class="stat-label">My Claims</div>
+                        <div class="stat-label">Claims</div>
                     </div>
                 </div>
             </div>
@@ -217,7 +217,7 @@ try {
                     <div class="footer-links">
                         <h5>Account</h5>
                         <ul>
-                            <li><a href="claim.php">My Claims</a></li>
+                            <li><a href="claim.php">My Claims & Reports</a></li>
                             <li><a href="userprofile.php">Profile</a></li>
                             <li><a href="#">Settings</a></li>
                             <li><a href="#">Help</a></li>

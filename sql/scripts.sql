@@ -352,6 +352,20 @@ BEGIN
 END$$
 
 -- =============================================
+-- USER-RELATED STORED PROCEDURES
+-- =============================================
+
+-- Get count of claims made by a user
+CREATE PROCEDURE GetUserClaimsCount(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT COUNT(*) as total 
+    FROM ClaimRequest 
+    WHERE user_id = p_user_id;
+END$$
+
+-- =============================================
 -- TRIGGERS
 -- =============================================
 
