@@ -391,6 +391,131 @@ BEGIN
     END IF;
 END$$
 
-delimiter ;
 
-select * from `User`;
+-- =============================================
+-- CLAIM MANAGEMENT PROCEDURES
+-- =============================================
+
+-- Submit a new claim
+CREATE PROCEDURE SubmitClaim(
+    IN p_item_type VARCHAR(10),  -- 'lost' or 'found'
+    IN p_item_id INT,
+    IN p_user_id INT,
+    IN p_description TEXT,
+    IN p_proof_details TEXT
+)
+BEGIN
+    DECLARE v_lost_id INT DEFAULT NULL;
+    DECLARE v_found_id INT DEFAULT NULL;
+    DECLARE v_status VARCHAR(20);
+    
+    -- Set the appropriate ID based on item type
+    IF p_item_type = 'lost' THEN
+        SET v_lost_id = p_item_id;
+        -- Check if item exists and is claimable
+        SELECT status INTO v_status FROM LostItem WHERE lost_id = p_item_id;
+        IF v_status != 'pending' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This lost item is not available for claiming';
+        END IF;
+    ELSEIF p_item_type = 'found' THEN
+        SET v_found_id = p_item_id;
+        -- Check if item exists and is claimable
+        SELECT status INTO v_status FROM FoundItem WHERE found_id = p_item_id;
+        IF v_status != 'available' THEN
+            SIGNAL SQLSTATE '45001' SET MESSAGE_TEXT = 'This found item is not available for claiming';
+        END IF;
+    ELSE
+        SIGNAL SQLSTATE '45002' SET MESSAGE_TEXT = 'Invalid item type';
+    END IF;
+    
+    -- Insert the claim
+    INSERT INTO ClaimRequest (
+        lost_id,
+        found_id,
+        user_id,
+        claim_description,
+        proof_details,
+        status,
+        claim_date
+    ) VALUES (
+        v_lost_id,
+        v_found_id,
+        p_user_id,
+        p_description,
+        p_proof_details,
+        'pending',
+        NOW()
+    );
+    
+    -- Update item status
+    IF p_item_type = 'lost' THEN
+        UPDATE LostItem SET status = 'pending_verification' WHERE lost_id = p_item_id;
+    ELSE
+        UPDATE FoundItem SET status = 'pending_claim' WHERE found_id = p_item_id;
+    END IF;
+    
+    SELECT LAST_INSERT_ID() as claim_id;
+END$$
+
+-- Get claims by user
+CREATE PROCEDURE GetUserClaims(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT 
+        cr.claim_id,
+        cr.claim_date,
+        cr.status,
+        cr.approved_date,
+        CASE 
+            WHEN cr.lost_id IS NOT NULL THEN 'lost'
+            ELSE 'found'
+        END as item_type,
+        COALESCE(li.item_name, fi.item_name) as item_name,
+        COALESCE(li.description, fi.description) as description,
+        COALESCE(li.location, fi.location) as location,
+        COALESCE(li.lost_date, fi.found_date) as item_date,
+        u.username as reported_by
+    FROM ClaimRequest cr
+    LEFT JOIN LostItem li ON cr.lost_id = li.lost_id
+    LEFT JOIN FoundItem fi ON cr.found_id = fi.found_id
+    LEFT JOIN User u ON COALESCE(li.user_id, fi.user_id) = u.user_id
+    WHERE cr.user_id = p_user_id
+    ORDER BY cr.claim_date DESC;
+END$$
+
+-- Get claim details
+CREATE PROCEDURE GetClaimDetails(
+    IN p_claim_id INT,
+    IN p_user_id INT
+)
+BEGIN
+    SELECT 
+        cr.claim_id,
+        cr.claim_date,
+        cr.status,
+        cr.claim_description,
+        cr.proof_details,
+        cr.approved_date,
+        cr.admin_notes,
+        CASE 
+            WHEN cr.lost_id IS NOT NULL THEN 'lost'
+            ELSE 'found'
+        END as item_type,
+        COALESCE(li.item_name, fi.item_name) as item_name,
+        COALESCE(li.description, fi.description) as description,
+        COALESCE(li.category, fi.category) as category,
+        COALESCE(li.location, fi.location) as location,
+        COALESCE(li.lost_date, fi.found_date) as item_date,
+        u.username as reported_by,
+        u.email as reporter_email,
+        u.phone as reporter_phone
+    FROM ClaimRequest cr
+    LEFT JOIN LostItem li ON cr.lost_id = li.lost_id
+    LEFT JOIN FoundItem fi ON cr.found_id = fi.found_id
+    LEFT JOIN User u ON COALESCE(li.user_id, fi.user_id) = u.user_id
+    WHERE cr.claim_id = p_claim_id 
+    AND (cr.user_id = p_user_id OR p_user_id IS NULL);
+END$$
+
+delimiter ;
