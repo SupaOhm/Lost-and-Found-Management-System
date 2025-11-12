@@ -50,6 +50,17 @@ BEGIN
     SELECT user_id FROM User WHERE email = p_email;
 END$$
 
+-- Get User by Email
+CREATE PROCEDURE GetUserByEmail(
+    IN p_email VARCHAR(100)
+)
+BEGIN
+    SELECT user_id, username, email, password, phone, created_at
+    FROM User 
+    WHERE email = p_email
+    LIMIT 1;
+END$$
+
 -- Update User Profile
 CREATE PROCEDURE UpdateUserProfile(
     IN p_user_id INT,
@@ -516,6 +527,17 @@ BEGIN
     LEFT JOIN User u ON COALESCE(li.user_id, fi.user_id) = u.user_id
     WHERE cr.claim_id = p_claim_id 
     AND (cr.user_id = p_user_id OR p_user_id IS NULL);
+END$$
+
+CREATE PROCEDURE VerifyAdminLogin(IN p_username VARCHAR(50))
+BEGIN
+    SELECT admin_id, username, password FROM Admin WHERE username = p_username LIMIT 1;
+END$$
+
+-- Stored procedure to get admin by ID
+CREATE PROCEDURE GetAdminById(IN p_admin_id INT)
+BEGIN
+    SELECT admin_id, username, email, created_at FROM Admin WHERE admin_id = p_admin_id LIMIT 1;
 END$$
 
 delimiter ;

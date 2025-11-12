@@ -34,6 +34,9 @@ CREATE TABLE Admin (
     email VARCHAR(100),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+insert into `Admin`(`username`, `password`, `email`) values('admin', 'admin', 'admin@admin.com');
+-- Stored procedure to verify admin login
+
 
 -- FOUND ITEM TABLE
 CREATE TABLE FoundItem (
