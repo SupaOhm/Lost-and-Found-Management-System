@@ -168,11 +168,12 @@ function highlightSearchTerms($text, $searchQuery) {
                            aria-label="Search">
                     <input type="hidden" name="filter" id="filterInput" value="<?php echo htmlspecialchars($filter); ?>">
                     <input type="hidden" name="exclude_my" id="excludeMyInput" value="<?php echo $excludeMy ? '1' : ''; ?>">
+                    <input type="hidden" name="view_mode" id="viewModeInput" value="<?php echo isset($_GET['view_mode']) ? htmlspecialchars($_GET['view_mode']) : 'list'; ?>">
                 </div>
             </form>
         </div>
 
-        <div class="d-flex gap-3 mb-5 flex-wrap justify-content-center align-items-center">
+        <div class="d-flex gap-3 mb-4 flex-wrap justify-content-center align-items-center">
             <button class="filter-button <?php echo $filter === 'all' ? 'active' : ''; ?>" data-filter="all">All Items</button>
             <button class="filter-button <?php echo $filter === 'lost' ? 'active' : ''; ?>" data-filter="lost">Lost Items</button>
             <button class="filter-button <?php echo $filter === 'found' ? 'active' : ''; ?>" data-filter="found">Found Items</button>
@@ -193,15 +194,20 @@ function highlightSearchTerms($text, $searchQuery) {
         -->
 
         <?php if (is_array($items) && !empty($items)): // Show items if we have them ?>
-            <div class="d-flex justify-content-end mb-2 list-controls">
+            <div class="d-flex justify-content-between mb-2 list-controls align-items-center">
+                <div>
+                    <button id="viewToggleBtn" type="button" class="btn btn-outline-secondary btn-sm view-btn" title="Toggle View">
+                        <i id="viewToggleIcon" class="bi bi-list"></i>
+                    </button>
+                </div>
                 <button id="excludeBtn" class="exclude-toggle btn btn-sm <?php echo $excludeMy ? 'btn-primary active' : 'btn-outline-secondary'; ?>" data-exclude="1">
                     <?php echo $excludeMy ? '<i class="bi bi-eye-fill"></i> Showing: Others' : '<i class="bi bi-eye-slash"></i> Hide My Reports'; ?>
                 </button>
             </div>
-            <div class="list-group mb-4 position-relative">
+            <div class="scrollable-box" id="searchItems">
+                <div id="itemsContainer" class="<?php echo $viewMode === 'grid' ? 'grid-view' : 'vertical-list'; ?>">
                 <?php 
                 foreach ($items as $item): 
-                    // Ensure all required fields have values
                     $item = array_merge([
                         'type' => 'unknown',
                         'id' => 0,
@@ -212,54 +218,44 @@ function highlightSearchTerms($text, $searchQuery) {
                         'item_date' => date('Y-m-d'),
                         'created_at' => date('Y-m-d H:i:s')
                     ], $item);
-                    
-                    // Format dates
                     $itemDate = date('M j, Y', strtotime($item['item_date']));
                     $createdAt = date('M j, Y g:i A', strtotime($item['created_at']));
+                    $typeBadgeClass = $item['type'] === 'lost' ? 'item-type-lost' : ($item['type'] === 'found' ? 'item-type-found' : 'bg-secondary');
                 ?>
-                    <div class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">
-                                <span class="badge bg-<?php echo $item['type'] === 'lost' ? 'danger' : 'success'; ?> me-2">
-                                    <?php echo ucfirst(htmlspecialchars($item['type'])); ?>
-                                </span>
-                                <?php echo htmlspecialchars($item['item_name']); ?>
-                            </h5>
-                            <small class="text-muted">Reported on <?php echo $createdAt; ?></small>
+                <div class="report-card d-flex align-items-start position-relative mb-3 item-card">
+                    <div class="item-type-badge <?php echo $typeBadgeClass; ?>">
+                        <?php echo ucfirst($item['type']); ?>
+                    </div>
+                    <div class="item-image">
+                        <i class="bi bi-collection"></i>
+                    </div>
+                    <div class="item-details">
+                        <h5 class="item-title mb-1"><?php echo htmlspecialchars($item['item_name']); ?></h5>
+                        <div class="item-meta mb-2">
+                            <div><i class="bi bi-calendar3 me-1"></i> <?php echo $createdAt; ?></div>
+                            <div><i class="bi bi-tag-fill me-1"></i> Category: <?php echo htmlspecialchars($item['category']); ?></div>
+                            <div><i class="bi bi-geo-alt-fill me-1"></i> Location: <?php echo htmlspecialchars($item['location']); ?></div>
+                            <div><i class="bi bi-calendar-event me-1"></i> <?php echo $item['type'] === 'lost' ? 'Lost' : 'Found'; ?> on: <?php echo $itemDate; ?></div>
                         </div>
-                        <div class="d-flex w-100 justify-content-between align-items-center">
-                            <div class="me-3">
-                                <p class="mb-1">
-                                    <i class="bi bi-tag-fill text-muted me-1"></i>
-                                    <span class="text-muted">Category:</span> 
-                                    <?php echo htmlspecialchars($item['category']); ?>
-                                </p>
-                                <p class="mb-1">
-                                    <i class="bi bi-geo-alt-fill text-muted me-1"></i>
-                                    <span class="text-muted">Location:</span> 
-                                    <?php echo htmlspecialchars($item['location']); ?>
-                                </p>
-                                <p class="mb-1">
-                                    <i class="bi bi-calendar-event text-muted me-1"></i>
-                                    <span class="text-muted">
-                                        <?php echo $item['type'] === 'lost' ? 'Lost' : 'Found'; ?> on:
-                                    </span> 
-                                    <?php echo $itemDate; ?>
-                                </p>
-                                <?php if (!empty($item['description'])): ?>
-                                    <p class="mb-0 mt-2">
-                                        <i class="bi bi-chat-square-text text-muted me-1"></i>
-                                        <?php echo htmlspecialchars($item['description']); ?>
-                                    </p>
-                                <?php endif; ?>
+                        <?php if (!empty($item['description'])): ?>
+                            <div class="text-truncate" style="max-width: 350px;" title="<?php echo htmlspecialchars($item['description']); ?>">
+                                <i class="bi bi-chat-square-text text-muted me-1"></i>
+                                <?php 
+                                $shortDesc = strlen($item['description']) > 80 ? substr($item['description'],0,77).'...' : $item['description'];
+                                echo htmlspecialchars($shortDesc);
+                                ?>
                             </div>
+                        <?php endif; ?>
+                        <div class="mt-3 d-flex justify-content-end align-items-center gap-2">
                             <a href="item_detail.php?type=<?php echo htmlspecialchars($item['type']); ?>&id=<?php echo htmlspecialchars($item['id']); ?>" 
-                               class="btn btn-sm btn-outline-primary">
-                                View Details
+                               class="btn btn-mark-text btn-sm">
+                                <i class="bi bi-eye"></i> View Details
                             </a>
                         </div>
                     </div>
+                </div>
                 <?php endforeach; ?>
+                </div>
             </div>
         <?php else: // Show no items message ?>
             <div id="noItemsMessage" class="text-center mt-5">
@@ -289,27 +285,56 @@ function highlightSearchTerms($text, $searchQuery) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle filter button clicks
+            // Single view toggle
+            const viewToggleBtn = document.getElementById('viewToggleBtn');
+            const viewToggleIcon = document.getElementById('viewToggleIcon');
+            const itemsContainer = document.getElementById('itemsContainer');
+            const viewModeInput = document.getElementById('viewModeInput');
+            let isListView = (viewModeInput.value === 'list');
+            function setViewMode(listView) {
+                isListView = listView;
+                if (isListView) {
+                    itemsContainer.classList.remove('grid-view');
+                    itemsContainer.classList.add('vertical-list');
+                    viewToggleIcon.classList.remove('bi-grid-3x3-gap');
+                    viewToggleIcon.classList.add('bi-list');
+                    viewModeInput.value = 'list';
+                } else {
+                    itemsContainer.classList.remove('vertical-list');
+                    itemsContainer.classList.add('grid-view');
+                    viewToggleIcon.classList.remove('bi-list');
+                    viewToggleIcon.classList.add('bi-grid-3x3-gap');
+                    viewModeInput.value = 'grid';
+                }
+            }
+            setViewMode(isListView);
+            viewToggleBtn.addEventListener('click', function() {
+                setViewMode(!isListView);
+            });
+            // Filter buttons
             const filterButtons = document.querySelectorAll('.filter-button');
             filterButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     // Update active state
                     filterButtons.forEach(btn => btn.classList.remove('active'));
                     this.classList.add('active');
-                    
                     // Update hidden input and submit form
                     const filter = this.getAttribute('data-filter');
                     document.getElementById('filterInput').value = filter;
                     document.getElementById('searchForm').submit();
                 });
             });
-            
-            // Initialize tooltips
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-            
+            // Exclude my reports toggle
+            const excludeBtn = document.getElementById('excludeBtn');
+            const excludeInput = document.getElementById('excludeMyInput');
+            if (excludeBtn && excludeInput) {
+                excludeBtn.addEventListener('click', function() {
+                    const isActive = this.classList.toggle('active');
+                    excludeInput.value = isActive ? '1' : '';
+                    this.textContent = isActive ? 'Showing: Others' : 'Hide My Reports';
+                    document.getElementById('searchForm').submit();
+                });
+            }
             // Auto-submit search form when typing stops (with debounce)
             let searchTimer;
             const searchInput = document.getElementById('searchInput');
@@ -321,20 +346,140 @@ function highlightSearchTerms($text, $searchQuery) {
                     }, 500);
                 });
             }
-
-            // Exclude my reports toggle
-            const excludeBtn = document.getElementById('excludeBtn');
-            const excludeInput = document.getElementById('excludeMyInput');
-            if (excludeBtn && excludeInput) {
-                excludeBtn.addEventListener('click', function() {
-                    const isActive = this.classList.toggle('active');
-                    excludeInput.value = isActive ? '1' : '';
-                    // Update button label
-                    this.textContent = isActive ? 'Showing: Others' : 'Hide My Reports';
-                    document.getElementById('searchForm').submit();
-                });
-            }
         });
     </script>
+
+    <style>
+        .scrollable-box {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding-right: 0.5rem;
+        }
+        .scrollable-box::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollable-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        .report-card {
+            background: white;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem; /* even smaller vertical padding */
+            margin-bottom: 0.6rem; /* tighter gap */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            min-height: 56px;
+            font-size: 1rem;
+        }
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .item-image {
+            width: 38px; /* smaller image */
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-right: 0.6rem;
+            font-size: 1.1rem;
+            color: #6c757d;
+            box-shadow: 0 2px 8px rgba(16,24,40,0.04);
+        }
+        .item-details {
+            flex: 1;
+        }
+        .item-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.1rem;
+            font-size: 1.08rem;
+            line-height: 1.3;
+        }
+        .item-meta {
+            font-size: 0.97rem;
+            color: #495057;
+            margin-bottom: 0.18rem;
+            line-height: 1.4;
+        }
+        .item-type-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            padding: .14rem .45rem;
+            border-radius: 999px;
+            font-weight:700;
+            color:#fff;
+            font-size: .72rem;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        }
+        .item-type-lost { background: linear-gradient(135deg,#e53935,#ff6b6b); }
+        .item-type-found { background: linear-gradient(135deg,#28a745,#20c997); }
+        .btn-mark-text {
+            background: linear-gradient(135deg,#28a745,#20c997);
+            border: none;
+            color: #fff;
+            padding: .28rem 0.6rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            box-shadow: 0 6px 18px rgba(32,201,151,0.12);
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .btn-mark-text:hover {
+            background: linear-gradient(135deg,#228236,#1aa179);
+            color: #fff;
+            text-decoration: none;
+        }
+        .btn-mark-text i { font-size: 0.85rem; line-height: 1; }
+        .text-truncate {
+            max-width: 300px !important;
+            font-size: 0.97rem;
+            color: #212529;
+            line-height: 1.4;
+        }
+        .view-toggle .view-btn {
+            margin-left: 2px;
+            margin-right: 2px;
+        }
+        #itemsContainer.vertical-list {
+            display: block;
+        }
+        #itemsContainer.grid-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.8rem;
+        }
+        #itemsContainer.grid-view .item-card {
+            flex-direction: column !important;
+            min-height: 180px;
+            align-items: flex-start !important;
+        }
+        #itemsContainer.grid-view .item-image {
+            margin-right: 0;
+            margin-bottom: 0.5rem;
+        }
+        #itemsContainer.grid-view .item-details {
+            width: 100%;
+        }
+        .view-btn {
+            min-width: 36px;
+        }
+    </style>
 </body>
 </html>
