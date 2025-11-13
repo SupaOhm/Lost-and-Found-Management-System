@@ -34,6 +34,16 @@ CREATE TABLE Admin (
     email VARCHAR(100),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- STAFF TABLE
+CREATE TABLE Staff (
+    staff_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 insert into `Admin`(`username`, `password`, `email`) values('admin', 'admin', 'admin@admin.com');
 -- Stored procedure to verify admin login
 
