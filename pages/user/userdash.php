@@ -154,20 +154,20 @@ try {
     <section class="py-4">
         <div class="container">
             <div class="row g-4">
-                <div class="col-12 col-md-4 mx-auto">
-                    <div class="stat-card justify-content-center">
+                <div class="col-12 col-md-4 d-flex align-items-center justify-content-end">
+                    <div class="stat-card text-center d-flex flex-column align-items-center justify-content-center h-100">
                         <div class="stat-number"><?php echo number_format($stats['lost_items']); ?></div>
                         <div class="stat-label">Lost Items Reported</div>
                     </div>
                 </div>
-                <div class="col-12 col-md-4 mx-auto">
-                    <div class="stat-card justify-content-center">
+                <div class="col-12 col-md-4 d-flex align-items-center justify-content-center">
+                    <div class="stat-card text-center d-flex flex-column align-items-center justify-content-center h-100">
                         <div class="stat-number"><?php echo number_format($stats['found_items']); ?></div>
                         <div class="stat-label">Found Items Reported</div>
                     </div>
                 </div>
-                <div class="col-12 col-md-4 mx-auto">
-                    <div class="stat-card justify-content-center">
+                <div class="col-12 col-md-4 d-flex align-items-center justify-content-start">
+                    <div class="stat-card text-center d-flex flex-column align-items-center justify-content-center h-100">
                         <div class="stat-number"><?php echo number_format($stats['my_claims']); ?></div>
                         <div class="stat-label">Claims</div>
                     </div>
@@ -175,25 +175,6 @@ try {
             </div>
         </div>
     </section>
-
-    <!-- Hero Section 
-    <section class="hero-section">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <h1 class="hero-title">Lost Something Important?</h1>
-                    <p class="hero-subtitle">Our community helps reunite people with their lost belongings. Report lost
-                        items, found items, or search our database.</p>
-                    <div class="hero-actions">
-                        <a href="lost.php" class="btn btn-hero btn-hero-primary">Report Lost Item</a>
-                        <a href="found.php" class="btn btn-hero btn-hero-secondary">Report Found Item</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section> -->
-
-
    
 
     <!-- Footer -->

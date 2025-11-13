@@ -70,11 +70,6 @@ try {
                     } else {
                         $stmt = $pdo->prepare("INSERT INTO ClaimRequest (found_id, user_id, status, claim_date) VALUES (?, ?, 'pending', NOW())");
                         $stmt->execute([$itemId, $_SESSION['user_id']]);
-
-                        // Update item status if it's a found item
-                        // Use 'returned' which exists in the schema ENUM for FoundItem.status
-                        $stmt = $pdo->prepare("UPDATE FoundItem SET status = 'returned' WHERE found_id = ?");
-                        $stmt->execute([$itemId]);
                     }
 
                     $success = 'Your claim has been submitted successfully! The item owner will review your claim and contact you if it matches their records.';

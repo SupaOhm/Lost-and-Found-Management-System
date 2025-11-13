@@ -16,6 +16,8 @@ $category = isset($_GET['category']) ? $_GET['category'] : '';
 $location = isset($_GET['location']) ? $_GET['location'] : '';
 $items = [];
 $error = '';
+// Option to exclude current user's reports
+$excludeMy = isset($_GET['exclude_my']) && $_GET['exclude_my'] === '1';
 
 // Debug: Log request parameters
 error_log('Search Parameters - Query: ' . $searchQuery . ', Filter: ' . $filter . ', Category: ' . $category . ', Location: ' . $location);
@@ -51,6 +53,42 @@ try {
     
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $stmt->closeCursor();
+
+    // If requested, remove items reported by the current user
+    if ($excludeMy && isset($_SESSION['user_id']) && !empty($items)) {
+        $filtered = [];
+        foreach ($items as $it) {
+            $ownerId = null;
+            if (isset($it['user_id'])) {
+                $ownerId = $it['user_id'];
+            } else {
+                // Try to fetch owner id from the appropriate table if not present
+                try {
+                    if (isset($it['type']) && $it['type'] === 'lost') {
+                        $q = $pdo->prepare('SELECT user_id FROM LostItem WHERE lost_id = ?');
+                        $q->execute([$it['id']]);
+                        $row = $q->fetch(PDO::FETCH_ASSOC);
+                        $q->closeCursor();
+                        $ownerId = $row['user_id'] ?? null;
+                    } elseif (isset($it['type']) && $it['type'] === 'found') {
+                        $q = $pdo->prepare('SELECT user_id FROM FoundItem WHERE found_id = ?');
+                        $q->execute([$it['id']]);
+                        $row = $q->fetch(PDO::FETCH_ASSOC);
+                        $q->closeCursor();
+                        $ownerId = $row['user_id'] ?? null;
+                    }
+                } catch (PDOException $e) {
+                    // If lookup fails, keep the item (fail-open)
+                    $ownerId = null;
+                }
+            }
+
+            if ($ownerId === null || $ownerId != $_SESSION['user_id']) {
+                $filtered[] = $it;
+            }
+        }
+        $items = $filtered;
+    }
     
     // Get distinct categories for filter
     $categoryStmt = $pdo->query("CALL GetItemCategories()");
@@ -129,11 +167,12 @@ function highlightSearchTerms($text, $searchQuery) {
                            placeholder="Search by item name, description, category, or location..." 
                            aria-label="Search">
                     <input type="hidden" name="filter" id="filterInput" value="<?php echo htmlspecialchars($filter); ?>">
+                    <input type="hidden" name="exclude_my" id="excludeMyInput" value="<?php echo $excludeMy ? '1' : ''; ?>">
                 </div>
             </form>
         </div>
 
-        <div class="d-flex gap-3 mb-5 flex-wrap justify-content-center">
+        <div class="d-flex gap-3 mb-5 flex-wrap justify-content-center align-items-center">
             <button class="filter-button <?php echo $filter === 'all' ? 'active' : ''; ?>" data-filter="all">All Items</button>
             <button class="filter-button <?php echo $filter === 'lost' ? 'active' : ''; ?>" data-filter="lost">Lost Items</button>
             <button class="filter-button <?php echo $filter === 'found' ? 'active' : ''; ?>" data-filter="found">Found Items</button>
@@ -154,7 +193,12 @@ function highlightSearchTerms($text, $searchQuery) {
         -->
 
         <?php if (is_array($items) && !empty($items)): // Show items if we have them ?>
-            <div class="list-group mb-4">
+            <div class="d-flex justify-content-end mb-2 list-controls">
+                <button id="excludeBtn" class="exclude-toggle btn btn-sm <?php echo $excludeMy ? 'btn-primary active' : 'btn-outline-secondary'; ?>" data-exclude="1">
+                    <?php echo $excludeMy ? '<i class="bi bi-eye-fill"></i> Showing: Others' : '<i class="bi bi-eye-slash"></i> Hide My Reports'; ?>
+                </button>
+            </div>
+            <div class="list-group mb-4 position-relative">
                 <?php 
                 foreach ($items as $item): 
                     // Ensure all required fields have values
@@ -275,6 +319,19 @@ function highlightSearchTerms($text, $searchQuery) {
                     searchTimer = setTimeout(() => {
                         document.getElementById('searchForm').submit();
                     }, 500);
+                });
+            }
+
+            // Exclude my reports toggle
+            const excludeBtn = document.getElementById('excludeBtn');
+            const excludeInput = document.getElementById('excludeMyInput');
+            if (excludeBtn && excludeInput) {
+                excludeBtn.addEventListener('click', function() {
+                    const isActive = this.classList.toggle('active');
+                    excludeInput.value = isActive ? '1' : '';
+                    // Update button label
+                    this.textContent = isActive ? 'Showing: Others' : 'Hide My Reports';
+                    document.getElementById('searchForm').submit();
                 });
             }
         });
