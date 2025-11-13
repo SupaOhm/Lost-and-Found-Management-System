@@ -272,8 +272,9 @@ try {
     .btn-mark:hover { filter: brightness(0.95); }
     .btn-view { background: linear-gradient(135deg,#0d6efd,#4dabf7); border: none; color: #fff; box-shadow: 0 6px 18px rgba(13,110,253,0.12); }
     .btn-delete { background: linear-gradient(135deg,#dc3545,#ff6b6b); border: none; color: #fff; box-shadow: 0 6px 18px rgba(220,53,69,0.12); }
-    .btn-mark-text { background: linear-gradient(135deg,#28a745,#20c997); border: none; color: #fff; padding: .35rem .75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: .5rem; box-shadow: 0 6px 18px rgba(32,201,151,0.12); }
-    .btn-mark-text i { margin-right: .35rem; }
+    .btn-mark-text { background: linear-gradient(135deg,#28a745,#20c997); border: none; color: #fff; padding: .5rem 0.9rem; border-radius: 999px; display: inline-flex; align-items: center; gap: .4rem; box-shadow: 0 6px 18px rgba(32,201,151,0.12); font-size: 0.85rem; font-weight: 500; white-space: nowrap; }
+    .btn-mark-text:hover { background: linear-gradient(135deg,#228236,#1aa179); color: #fff; text-decoration: none; }
+    .btn-mark-text i { font-size: 0.9rem; line-height: 1; }
         .pagination-container {
             display: flex;
             align-items: center;
@@ -392,37 +393,39 @@ try {
                                             </div>
                                         </div>
                                         <!-- status back on the left -->
-                                        <div class="mt-2 d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <span class="status-badge status-<?php echo $cls; ?>">
-                                                    <?php echo $disp; ?>
-                                                </span>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <a href="item_detail.php?type=<?php echo $item['item_type']; ?>&id=<?php echo $item['item_id']; ?>" 
-                                                   class="btn btn-sm btn-circle btn-view" title="View">
-                                                    <i class="bi bi-eye-fill"></i>
-                                                </a>
-                                                <!-- Delete report form -->
-                                                <form method="post" class="d-inline" onsubmit="return confirm('Delete this report?');">
-                                                    <input type="hidden" name="action" value="delete_report">
-                                                    <input type="hidden" name="item_type" value="<?php echo $item['item_type']; ?>">
-                                                    <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                                                    <button class="btn btn-sm btn-circle btn-delete" type="submit" title="Delete"><i class="bi bi-trash-fill"></i></button>
-                                                </form>
-                                                <?php if ($item['item_type'] === 'lost' && $item['status'] !== 'claimed'): ?>
-                                                    <form method="post" class="d-inline" onsubmit="return confirm('Mark this lost item as found?');">
-                                                        <input type="hidden" name="action" value="mark_lost_found">
+                                        <div class="mt-2">
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                <div>
+                                                    <span class="status-badge status-<?php echo $cls; ?>">
+                                                        <?php echo $disp; ?>
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                    <a href="item_detail.php?type=<?php echo $item['item_type']; ?>&id=<?php echo $item['item_id']; ?>" 
+                                                       class="btn btn-sm btn-circle btn-view" title="View">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </a>
+                                                    <!-- Delete report form -->
+                                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this report?');">
+                                                        <input type="hidden" name="action" value="delete_report">
+                                                        <input type="hidden" name="item_type" value="<?php echo $item['item_type']; ?>">
                                                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                                                        <button class="btn btn-sm btn-mark-text" type="submit" title="Mark Found"><i class="bi bi-bell-check-fill"></i> Mark Found</button>
+                                                        <button class="btn btn-sm btn-circle btn-delete" type="submit" title="Delete"><i class="bi bi-trash-fill"></i></button>
                                                     </form>
-                                                <?php elseif ($item['item_type'] === 'found' && $item['status'] !== 'returned'): ?>
-                                                    <form method="post" class="d-inline" onsubmit="return confirm('Mark this found item as returned?');">
-                                                        <input type="hidden" name="action" value="mark_found_returned">
-                                                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                                                        <button class="btn btn-sm btn-mark-text" type="submit" title="Mark Returned"><i class="bi bi-box-arrow-in-left"></i> Mark Returned</button>
-                                                    </form>
-                                                <?php endif; ?>
+                                                    <?php if ($item['item_type'] === 'lost' && $item['status'] !== 'claimed'): ?>
+                                                        <form method="post" class="d-inline" onsubmit="return confirm('Mark this lost item as found?');">
+                                                            <input type="hidden" name="action" value="mark_lost_found">
+                                                            <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                                                            <button class="btn btn-sm btn-mark-text" type="submit" title="Mark Found"><i class="bi bi-check-circle"></i> Mark Found</button>
+                                                        </form>
+                                                    <?php elseif ($item['item_type'] === 'found' && $item['status'] !== 'returned'): ?>
+                                                        <form method="post" class="d-inline" onsubmit="return confirm('Mark this found item as returned?');">
+                                                            <input type="hidden" name="action" value="mark_found_returned">
+                                                            <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                                                            <button class="btn btn-sm btn-mark-text" type="submit" title="Mark Returned"><i class="bi bi-box-arrow-in-left"></i> Mark Returned</button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

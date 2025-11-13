@@ -916,3 +916,387 @@ a:focus,
         min-width: 100%;
     }
 }
+
+/* Success Card Styles - Premium Design */
+.success-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 600px;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.03) 0%, rgba(242, 37, 133, 0.02) 100%);
+}
+
+.success-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 40px rgba(67, 97, 238, 0.08);
+    padding: 60px 50px;
+    max-width: 550px;
+    text-align: center;
+    animation: slideUpBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.success-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--success), var(--accent));
+    animation: slideInTop 0.8s ease-out;
+}
+
+@keyframes slideUpBounce {
+    0% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(-5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInTop {
+    from {
+        transform: scaleX(0);
+        transform-origin: left;
+    }
+    to {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+}
+
+.success-icon {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 35px;
+    background: linear-gradient(135deg, var(--success) 0%, #4cc9f0 50%, #3dd5f3 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    color: white;
+    animation: scaleInPulse 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+    box-shadow: 0 15px 40px rgba(76, 201, 240, 0.3), inset 0 -2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.success-icon::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes scaleInPulse {
+    0% {
+        transform: scale(0) rotate(-45deg);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.15) rotate(0deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+.success-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 12px;
+    animation: fadeInUp 0.8s ease-out 0.3s both;
+    letter-spacing: -0.5px;
+}
+
+.success-message {
+    font-size: 1.05rem;
+    color: var(--gray);
+    line-height: 1.7;
+    margin-bottom: 40px;
+    animation: fadeInUp 0.8s ease-out 0.4s both;
+    font-weight: 500;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.success-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeInUp 0.8s ease-out 0.5s both;
+}
+
+.success-actions .btn {
+    padding: 13px 32px;
+    border-radius: 60px;
+    font-weight: 600;
+    transition: var(--transition);
+    flex: 1;
+    min-width: 160px;
+    font-size: 0.95rem;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.success-actions .btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: left 0.4s ease;
+}
+
+.success-actions .btn:hover::before {
+    left: 100%;
+}
+
+.success-actions .btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.25);
+}
+
+.success-actions .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(67, 97, 238, 0.35);
+    color: white;
+}
+
+.success-actions .btn-outline-primary {
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    background: white;
+    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.1);
+}
+
+.success-actions .btn-outline-primary:hover {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-color: var(--primary-dark);
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(67, 97, 238, 0.35);
+}
+
+@media (max-width: 768px) {
+    .success-container {
+        min-height: 500px;
+        padding: 30px 15px;
+    }
+    
+    .success-card {
+        padding: 45px 30px;
+        border-radius: 16px;
+    }
+    
+    .success-icon {
+        width: 85px;
+        height: 85px;
+        font-size: 3rem;
+        margin-bottom: 25px;
+    }
+    
+    .success-title {
+        font-size: 1.6rem;
+        margin-bottom: 10px;
+    }
+    
+    .success-message {
+        font-size: 0.95rem;
+        margin-bottom: 30px;
+    }
+    
+    .success-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .success-actions .btn {
+        min-width: 100%;
+        padding: 12px 24px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Profile Page Styles */
+.profile-layout {
+    padding-top: 10px;
+}
+
+.profile-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));
+    border-radius: 18px;
+    padding: 30px 20px;
+    text-align: center;
+    box-shadow: 0 18px 50px rgba(10, 25, 77, 0.06), 0 6px 18px rgba(67,97,238,0.04);
+    border: 1px solid rgba(67,97,238,0.06);
+}
+
+/* Ensure avatar, name and member-since stack and center exactly under each other */
+.profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    margin: 8px auto 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--accent), var(--secondary));
+    color: white;
+    font-size: 2.6rem;
+    box-shadow: 0 12px 30px rgba(113, 9, 183, 0.12), inset 0 -4px 12px rgba(0,0,0,0.08);
+}
+
+/* Tighten avatar spacing so name and subtext sit directly beneath */
+.profile-avatar {
+    margin-bottom: 6px;
+}
+
+.avatar-initials {
+    display: inline-block;
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 0.6px;
+}
+
+.profile-name {
+    font-size: 1.15rem;
+    margin: 4px 0 0;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.profile-stats { gap: 12px; }
+.profile-stats { width: 100%; }
+
+/* Member since / muted line immediately below name */
+.profile-card .text-muted {
+    margin: 4px 0 10px;
+    font-size: 0.85rem;
+    color: var(--gray) !important;
+}
+.stat-card {
+    background: rgba(245, 247, 250, 0.9);
+    padding: 12px 10px;
+    border-radius: 12px;
+    min-width: 80px;
+}
+.stat-number { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+.stat-label { font-size: 0.85rem; color: var(--gray); }
+
+.profile-actions .btn { padding: 10px 18px; border-radius: 40px; }
+
+/* Smaller buttons used in details column */
+.profile-details .btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 28px;
+}
+
+.profile-details .info-label { color: var(--gray); font-size: 0.9rem; }
+.profile-details .info-value { font-size: 1rem; color: var(--dark); }
+
+.item-card { background: white; border-radius: 12px; box-shadow: var(--shadow); }
+.item-card .feature-icon { font-size: 1.6rem; width: 48px; height: 48px; border-radius: 10px; }
+
+@media (max-width: 992px) {
+    .profile-avatar { width: 110px; height: 110px; }
+    .profile-card { padding: 24px; }
+    .profile-name { font-size: 1.25rem; }
+}
+
+@media (max-width: 576px) {
+    .profile-stats { flex-direction: row; gap: 8px; }
+    .stat-card { padding: 10px 8px; }
+}
+
+/* Make activity tiles align evenly and fill column height */
+.item-card {
+    display: block;
+    height: 100%;
+    min-height: 120px;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.item-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 40px rgba(10,25,77,0.06);
+}
+
+.item-card .card-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.item-card .feature-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 1.25rem;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure the column uses full height so cards align in a row */
+.row.g-3 > .col-md-4.d-flex { display: flex; }
+
+@media (max-width: 768px) {
+    .item-card { min-height: 100px; }
+}

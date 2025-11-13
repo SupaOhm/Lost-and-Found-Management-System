@@ -77,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $success = 'Your lost item has been reported successfully!';
             
+            
             // Clear form
             $_POST = [];
             
@@ -117,12 +118,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
                 
                 <?php if (!empty($success)): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <?php echo htmlspecialchars($success); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        <div class="mt-2">
-                            <a href="userdash.php" class="btn btn-sm btn-outline-primary me-2">Back to Dashboard</a>
-                            <a href="lost.php" class="btn btn-sm btn-primary">Report Another Item</a>
+                    <div class="success-container">
+                        <div class="success-card">
+                            <div class="success-icon">
+                                <i class="bi bi-file-earmark-check"></i>
+                            </div>
+                            <h2 class="success-title">Success!</h2>
+                            <p class="success-message"><?php echo htmlspecialchars($success); ?></p>
+                            <div class="success-actions">
+                                <a href="userdash.php" class="btn btn-outline-primary">
+                                    <i class="bi bi-arrow-left"></i> Dashboard
+                                </a>
+                                <a href="lost.php" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle"></i> Report Another
+                                </a>
+                            </div>
                         </div>
                     </div>
                 <?php else: ?>

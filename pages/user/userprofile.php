@@ -18,15 +18,16 @@ $success = '';
 // Handle form submission for profile update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     try {
-        $full_name = sanitize_input($_POST['full_name']);
-        $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
-        $phone = sanitize_phone($_POST['phone']);
-        
-        // Call stored procedure to update user profile
+        // Expecting fields named 'username', 'email', 'phone' when updating
+        $username = sanitize_input($_POST['username'] ?? $_POST['full_name'] ?? '');
+        $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
+        $phone = sanitize_phone($_POST['phone'] ?? '');
+
+        // Call stored procedure to update user profile (user_id, username, email, phone)
         $stmt = $pdo->prepare("CALL UpdateUserProfile(?, ?, ?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $email, $full_name, $phone]);
+        $stmt->execute([$_SESSION['user_id'], $username, $email, $phone]);
         $stmt->closeCursor();
-        
+
         $success = 'Profile updated successfully!';
     } catch (PDOException $e) {
         $error = 'Error updating profile: ' . $e->getMessage();
@@ -114,56 +115,93 @@ try {
         <?php if (!empty($error)): ?>
             <div class="alert alert-danger"><?php echo $error; ?></div>
         <?php else: ?>
-            <div class="profile-header text-center">
-                <div class="profile-avatar">
-                    <i class="bi bi-person"></i>
-                </div>
-                <h2 class="mb-2"><?php echo htmlspecialchars($user['username']); ?></h2>
-                <p class="text-muted mb-4">Member since <?php echo date('F Y', strtotime($user['created_at'])); ?></p>
-                
-                <!-- Stats Cards -->
-                <div class="profile-stats">
-                    <div class="stat-card">
-                        <div class="stat-number"><?php echo number_format($lostItems ?? 0); ?></div>
-                        <div class="stat-label">Your Lost Items</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number"><?php echo number_format($foundItems ?? 0); ?></div>
-                        <div class="stat-label">Your Found Items</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number"><?php echo number_format($claimsCount ?? 0); ?></div>
-                        <div class="stat-label">Your Claims</div>
-                    </div>
-                </div>
-                
-                <div class="profile-info mt-5 text-start">
-                    <h4 class="mb-4">Account Information</h4>
-                    <div class="info-item">
-                        <div class="info-label">Username:</div>
-                        <div class="info-value"><?php echo htmlspecialchars($user['username']); ?></div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Email:</div>
-                        <div class="info-value"><?php echo htmlspecialchars($user['email']); ?></div>
-                    </div>
-                    <?php if (!empty($user['phone'])): ?>
-                    <div class="info-item">
-                        <div class="info-label">Phone:</div>
-                        <div class="info-value"><?php echo htmlspecialchars($user['phone']); ?></div>
-                    </div>
-                    <?php endif; ?>
-                    <div class="info-item">
-                        <div class="info-label">Member Since:</div>
-                        <div class="info-value"><?php echo date('F j, Y', strtotime($user['created_at'])); ?></div>
-                    </div>
-                </div>
+            <div class="profile-layout">
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-4">
+                        <div class="profile-card">
+                            <div class="profile-avatar">
+                                <?php
+                                    // Show initials if username present
+                                    $initials = '';
+                                    if (!empty($user['username'])) {
+                                        $parts = preg_split('/\s+/', $user['username']);
+                                        foreach ($parts as $p) { $initials .= strtoupper($p[0]); }
+                                        $initials = substr($initials, 0, 2);
+                                    }
+                                ?>
+                                <?php if (!empty($initials)): ?>
+                                    <span class="avatar-initials"><?php echo htmlspecialchars($initials); ?></span>
+                                <?php else: ?>
+                                    <i class="bi bi-person"></i>
+                                <?php endif; ?>
+                            </div>
+                            <h2 class="profile-name fw-semibold text-center"><?php echo htmlspecialchars($user['username']); ?></h2>
+                            <p class="text-muted small mb-3 text-center">Member since <?php echo date('F Y', strtotime($user['created_at'])); ?></p>
 
-            <!-- Additional sections can be added here -->
-            <div class="mt-4 text-end">
-                <a href="changeuserpassword.php" class="btn btn-outline-primary me-2">
-                    <i class="bi bi-key"></i> Change Password
-                </a>
+                            <div class="profile-stats d-flex justify-content-between">
+                                <div class="stat-card text-center">
+                                    <div class="stat-number"><?php echo number_format($lostItems ?? 0); ?></div>
+                                    <div class="stat-label">My Lost</div>
+                                </div>
+                                <div class="stat-card text-center">
+                                    <div class="stat-number"><?php echo number_format($foundItems ?? 0); ?></div>
+                                    <div class="stat-label">My Found</div>
+                                </div>
+                                <div class="stat-card text-center">
+                                    <div class="stat-number"><?php echo number_format($claimsCount ?? 0); ?></div>
+                                    <div class="stat-label">My Claims</div>
+                                </div>
+                            </div>
+
+                            
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div class="profile-details form-card">
+                            <h4 class="mb-4 fw-semibold">Account Information</h4>
+                            <div class="row gx-4 gy-3">
+                                <div class="col-md-6">
+                                    <div class="info-label">Username</div>
+                                    <div class="info-value fw-semibold"><?php echo htmlspecialchars($user['username']); ?></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-label">Email</div>
+                                    <div class="info-value"><?php echo htmlspecialchars($user['email']); ?></div>
+                                </div>
+                                
+                                <?php if (!empty($user['phone'])): ?>
+                                <div class="col-md-6">
+                                    <div class="info-label">Phone</div>
+                                    <div class="info-value"><?php echo htmlspecialchars($user['phone']); ?></div>
+                                </div>
+                                <?php else: ?>
+                                <div class="col-md-6">
+                                    <div class="info-label">Phone</div>
+                                    <div class="info-value text-muted">-</div>
+                                </div>
+                                <?php endif; ?>
+                                <div class="col-md-6">
+                                    <div class="info-label">Member Since</div>
+                                    <div class="info-value"><?php echo date('F j, Y', strtotime($user['created_at'])); ?></div>
+                                </div>
+                            
+
+                            <hr class="my-4">
+
+                            <div class="d-flex align-items-center justify-content-between flex-column flex-md-row gap-3">
+                                <div>
+                                    <h5 class="mb-1 fw-semibold">Account Actions</h5>
+                                    
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a href="edit_profile.php" class="btn btn-outline-primary btn-sm">Edit Profile</a>
+                                    <a href="changeuserpassword.php" class="btn btn-primary btn-sm">Change Password</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
     </main>

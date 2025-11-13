@@ -274,47 +274,7 @@ try {
                                 </div>
                             </div>
                             
-                            <?php if ($itemType === 'lost' && !$isOwner): ?>
-                                <div class="alert alert-info mt-4">
-                                    <i class="bi bi-info-circle-fill me-1"></i>
-                                    This item is marked as lost — it was reported missing by its owner, so it cannot be claimed by other users here.
-                                </div>
-                            <?php elseif ($userCanClaim): ?>
-                                <div class="claim-form">
-                                    <h5 class="fw-semibold mb-3">Claim This Item</h5>
-                                    <?php if ($success): ?>
-                                        <div class="alert alert-success">
-                                            <?php echo htmlspecialchars($success); ?>
-                                        </div>
-                                    <?php else: ?>
-                                        <form method="POST" action="">
-                                            <div class="mb-3">
-                                                <label for="claim_description" class="form-label">
-                                                    Why do you think this is your item? *
-                                                </label>
-                                                <textarea class="form-control" id="claim_description" name="claim_description" 
-                                                          rows="4" required placeholder="Please provide as much detail as possible to help verify your claim."></textarea>
-                                                <div class="form-text">
-                                                    Be specific about identifying marks, when you lost it, and any other details that can help verify your claim.
-                                                </div>
-                                            </div>
-                                            <button type="submit" name="claim_item" class="btn btn-primary">
-                                                Submit Claim
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            <?php elseif ($isOwner): ?>
-                                <div class="alert alert-info mt-4">
-                                    <i class="bi bi-info-circle-fill me-1"></i>
-                                    This is your <?php echo $itemType; ?> item. You can manage claims in your dashboard.
-                                </div>
-                            <?php elseif ($item['status'] === 'claimed' || $item['status'] === 'returned'): ?>
-                                <div class="alert alert-warning mt-4">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                    This item has already been claimed.
-                                </div>
-                            <?php endif; ?>
+                            
                         </div>
                     </div>
                 </div>
@@ -361,15 +321,39 @@ try {
                         </div>
                     </div>
                     
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">Need Help?</h5>
-                            <p>If you have any questions or need assistance, please contact our support team.</p>
-                            <a href="../contact.php" class="btn btn-outline-primary w-100">
-                                <i class="bi bi-envelope-fill me-1"></i> Contact Support
-                            </a>
+                    <!-- Submit Claim form (moved here to give quick access on the right column) -->
+                    <?php if ($userCanClaim): ?>
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Claim This Item</h5>
+                                <?php if ($success): ?>
+                                    <div class="alert alert-success mb-3">
+                                        <?php echo htmlspecialchars($success); ?>
+                                    </div>
+                                <?php else: ?>
+                                    <form method="POST" action="">
+                                        <div class="mb-3">
+                                            <label for="claim_description_side" class="form-label">Why do you think this is your item? *</label>
+                                            <textarea class="form-control" id="claim_description_side" name="claim_description" rows="4" required
+                                                      placeholder="Provide identifying marks, when you lost it, and any other helpful details."></textarea>
+                                            <div class="form-text">Be specific to help the owner verify the claim.</div>
+                                        </div>
+                                        <button type="submit" name="claim_item" class="btn btn-primary w-100">Submit Claim</button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                    </div>
+                    <?php else: ?>
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Need Help?</h5>
+                                <p>If you have any questions or need assistance, please contact our support team.</p>
+                                <a href="../contact.php" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-envelope-fill me-1"></i> Contact Support
+                                </a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>
