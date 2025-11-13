@@ -167,11 +167,17 @@ END$$
 -- View Pending Claims (Admin)
 CREATE PROCEDURE ViewPendingClaims()
 BEGIN
-    SELECT c.claim_id, u.username AS requester, l.item_name AS lost_item, f.item_name AS found_item, c.status, c.claim_date
+    -- Use LEFT JOINs because a claim can reference either a lost item or a found item (one of the IDs may be NULL)
+    SELECT c.claim_id,
+           u.username AS requester,
+           l.item_name AS lost_item,
+           f.item_name AS found_item,
+           c.status,
+           c.claim_date
     FROM ClaimRequest c
-    JOIN User u ON c.user_id = u.user_id
-    JOIN LostItem l ON c.lost_id = l.lost_id
-    JOIN FoundItem f ON c.found_id = f.found_id
+    LEFT JOIN User u ON c.user_id = u.user_id
+    LEFT JOIN LostItem l ON c.lost_id = l.lost_id
+    LEFT JOIN FoundItem f ON c.found_id = f.found_id
     WHERE c.status = 'pending'
     ORDER BY c.claim_date DESC;
 END$$

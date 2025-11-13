@@ -141,24 +141,33 @@ try {
         </div>
     </section>
 
+     <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <h2 class="cta-title">Track Your Reports?</h2>
+            <p class="cta-text">You can track your reports and claims here.</p>
+            <a href="claim.php" class="btn btn-cta">View Your Claims & Reports</a>
+        </div>
+    </section>
+    
     <!-- Stats Section -->
     <section class="py-4">
         <div class="container">
             <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="stat-card">
+                <div class="col-12 col-md-4 mx-auto">
+                    <div class="stat-card justify-content-center">
                         <div class="stat-number"><?php echo number_format($stats['lost_items']); ?></div>
                         <div class="stat-label">Lost Items Reported</div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
+                <div class="col-12 col-md-4 mx-auto">
+                    <div class="stat-card justify-content-center">
                         <div class="stat-number"><?php echo number_format($stats['found_items']); ?></div>
                         <div class="stat-label">Found Items Reported</div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
+                <div class="col-12 col-md-4 mx-auto">
+                    <div class="stat-card justify-content-center">
                         <div class="stat-number"><?php echo number_format($stats['my_claims']); ?></div>
                         <div class="stat-label">Claims</div>
                     </div>
@@ -182,17 +191,10 @@ try {
                 </div>
             </div>
         </div>
-    </section>-->
+    </section> -->
 
 
-    <!-- CTA Section -->
-    <section class="cta-section">
-        <div class="container">
-            <h2 class="cta-title">Ready to Get Started?</h2>
-            <p class="cta-text">Join our community today and help reunite people with their belongings.</p>
-            <a href="search.php" class="btn btn-cta">Browse Items Now</a>
-        </div>
-    </section>
+   
 
     <!-- Footer -->
     <footer class="footer">

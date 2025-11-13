@@ -126,7 +126,7 @@ try {
                         </div>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                             <li><a class="dropdown-item" href="userprofile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-card-checklist me-2"></i>My Claims</a></li>
+                            <li><a class="dropdown-item" href="claim.php"><i class="bi bi-card-checklist me-2"></i>My Claims and Reports</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
@@ -151,15 +151,15 @@ try {
                 <div class="profile-stats">
                     <div class="stat-card">
                         <div class="stat-number"><?php echo number_format($lostItems ?? 0); ?></div>
-                        <div class="stat-label">Lost Items</div>
+                        <div class="stat-label">Your Lost Items</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number"><?php echo number_format($foundItems ?? 0); ?></div>
-                        <div class="stat-label">Found Items</div>
+                        <div class="stat-label">Your Found Items</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number"><?php echo number_format($claimsCount ?? 0); ?></div>
-                        <div class="stat-label">Claims</div>
+                        <div class="stat-label">Your Claims</div>
                     </div>
                 </div>
                 
@@ -185,49 +185,9 @@ try {
                     </div>
                 </div>
 
-            <div class="profile-details">
-                <h4 class="mb-4">Account Information</h4>
-                
-                <div class="detail-item">
-                    <div class="detail-label">
-                        <i class="bi bi-person me-2"></i>Username
-                    </div>
-                    <div class="detail-value">
-                        <?php echo htmlspecialchars($user['username']); ?>
-                    </div>
-                </div>
-                
-                <div class="detail-item">
-                    <div class="detail-label">
-                        <i class="bi bi-envelope me-2"></i>Email Address
-                    </div>
-                    <div class="detail-value">
-                        <?php echo htmlspecialchars($user['email']); ?>
-                    </div>
-                </div>
-                
-                <div class="detail-item">
-                    <div class="detail-label">
-                        <i class="bi bi-telephone me-2"></i>Phone Number
-                    </div>
-                    <div class="detail-value">
-                        <?php echo !empty($user['phone']) ? htmlspecialchars($user['phone']) : '<span class="text-muted">Not provided</span>'; ?>
-                    </div>
-                </div>
-                
-                <div class="detail-item">
-                    <div class="detail-label">
-                        <i class="bi bi-calendar3 me-2"></i>Member Since
-                    </div>
-                    <div class="detail-value">
-                        <?php echo date('F j, Y', strtotime($user['created_at'])); ?>
-                    </div>
-                </div>
-            </div>
-
             <!-- Additional sections can be added here -->
             <div class="mt-4 text-end">
-                <a href="changepassword.php" class="btn btn-outline-primary me-2">
+                <a href="changeuserpassword.php" class="btn btn-outline-primary me-2">
                     <i class="bi bi-key"></i> Change Password
                 </a>
             </div>

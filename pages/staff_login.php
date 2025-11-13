@@ -4,41 +4,41 @@ require_once '../config/db.php';
 
 $error = '';
 
-// Check if admin is already logged in
-if (isset($_SESSION['admin_id'])) {
-    header('Location: admin/admin_dashboard.php');
+// Check if staff is already logged in
+if (isset($_SESSION['staff_id'])) {
+    header('Location: staff/staff_dashboard.php');
     exit();
 }
 
-// Handle admin login form submission
+// Handle staff login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
     
     try {
-        // Call the stored procedure to verify admin login
-        $stmt = $pdo->prepare("CALL VerifyAdminLogin(?)");
+        // Call the stored procedure to verify staff login
+        $stmt = $pdo->prepare("CALL VerifyStaffLogin(?)");
         $stmt->execute([$username]);
-        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+        $staff = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
         
-        if ($admin && password_verify($password, $admin['password'])) {
-            // Get complete admin data using the stored procedure
-            $stmt = $pdo->prepare("CALL GetAdminById(?)");
-            $stmt->execute([$admin['admin_id']]);
-            $adminData = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($staff && password_verify($password, $staff['password'])) {
+            // Get complete staff data using the stored procedure
+            $stmt = $pdo->prepare("CALL GetStaffById(?)");
+            $stmt->execute([$staff['staff_id']]);
+            $staffData = $stmt->fetch(PDO::FETCH_ASSOC);
             $stmt->closeCursor();
             
-            if ($adminData) {
-                $_SESSION['admin_id'] = $adminData['admin_id'];
-                $_SESSION['username'] = $adminData['username'];
-                $_SESSION['is_admin'] = true;
+            if ($staffData) {
+                $_SESSION['staff_id'] = $staffData['staff_id'];
+                $_SESSION['username'] = $staffData['username'];
+                $_SESSION['is_staff'] = true;
                 
-                if (isset($adminData['email'])) {
-                    $_SESSION['email'] = $adminData['email'];
+                if (isset($staffData['email'])) {
+                    $_SESSION['email'] = $staffData['email'];
                 }
                 
-                header('Location: admin/admin_dashboard.php');
+                header('Location: staff/staff_dashboard.php');
                 exit();
             }
         }
@@ -54,13 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Lost&Found</title>
+    <title>Staff Login - Lost&Found</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../assets/style.css">
     <style>
-        .admin-login-container {
+        .staff-login-container {
             max-width: 400px;
             margin: 5rem auto;
             padding: 2rem;
@@ -81,8 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="container">
-        <div class="admin-login-container">
-            <h2 class="text-center mb-4">Admin Login</h2>
+        <div class="staff-login-container">
+            <h2 class="text-center mb-4">Staff Login</h2>
             
             <?php if ($error): ?>
                 <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <form method="POST" action="">
                 <div class="mb-3">
-                    <label for="username" class="form-label">Admin Username</label>
+                    <label for="username" class="form-label">Staff Username</label>
                     <input type="text" class="form-control" id="username" name="username" required>
                 </div>
                 

@@ -1,34 +1,33 @@
 <?php
+session_start();
 require_once '../../config/db.php';
 
-// Handle claim approval
+// get admin id from session if available
+$adminId = isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : null;
+
+// Handle claim approval (use stored procedure ApproveClaim)
 if (isset($_POST['approve_claim'])) {
-    $claim_id = $_POST['claim_id'];
+    $claim_id = isset($_POST['claim_id']) ? (int)$_POST['claim_id'] : 0;
     
     try {
-        $stmt = $pdo->prepare("UPDATE claimrequest SET status = 'approved', approved_date = NOW() WHERE claim_id = ?");
-        $stmt->execute([$claim_id]);
-        
-        // Update item statuses
-        $stmt = $pdo->prepare("UPDATE lostitem SET status = 'claimed' WHERE lost_id = (SELECT lost_id FROM claimrequest WHERE claim_id = ?)");
-        $stmt->execute([$claim_id]);
-        
-        $stmt = $pdo->prepare("UPDATE founditem SET status = 'returned' WHERE found_id = (SELECT found_id FROM claimrequest WHERE claim_id = ?)");
-        $stmt->execute([$claim_id]);
-        
+        $stmt = $pdo->prepare("CALL ApproveClaim(?, ?)");
+        $stmt->execute([$claim_id, $adminId]);
+        // Close cursor to allow next calls
+        $stmt->closeCursor();
         $success = "Claim approved successfully!";
     } catch (Exception $e) {
         $error = "Error approving claim: " . $e->getMessage();
     }
 }
 
-// Handle claim rejection
+// Handle claim rejection (use stored procedure RejectClaim)
 if (isset($_POST['reject_claim'])) {
-    $claim_id = $_POST['claim_id'];
+    $claim_id = isset($_POST['claim_id']) ? (int)$_POST['claim_id'] : 0;
     
     try {
-        $stmt = $pdo->prepare("UPDATE claimrequest SET status = 'rejected', approved_date = NOW() WHERE claim_id = ?");
-        $stmt->execute([$claim_id]);
+        $stmt = $pdo->prepare("CALL RejectClaim(?, ?)");
+        $stmt->execute([$claim_id, $adminId]);
+        $stmt->closeCursor();
         $success = "Claim rejected successfully!";
     } catch (Exception $e) {
         $error = "Error rejecting claim: " . $e->getMessage();
@@ -37,16 +36,24 @@ if (isset($_POST['reject_claim'])) {
 
 // Get pending claims
 try {
-    $stmt = $pdo->query("
-        SELECT c.claim_id, u.username AS requester, l.item_name AS lost_item, f.item_name AS found_item, c.status, c.claim_date
-        FROM claimrequest c
-        JOIN user u ON c.user_id = u.user_id
-        JOIN lostitem l ON c.lost_id = l.lost_id
-        JOIN founditem f ON c.found_id = f.found_id
-        WHERE c.status = 'pending'
-        ORDER BY c.claim_date DESC
-    ");
+    // Use stored procedure to fetch pending claims
+    $stmt = $pdo->query("CALL ViewPendingClaims()");
     $pending_claims = $stmt->fetchAll();
+    // Close cursor to free connection for further calls
+    $stmt->closeCursor();
+
+    // If the procedure returned no rows (old proc used inner JOINs), fall back to a LEFT JOIN select
+    if (empty($pending_claims)) {
+        $fallbackSql = "SELECT c.claim_id, u.username AS requester, l.item_name AS lost_item, f.item_name AS found_item, c.status, c.claim_date
+                        FROM ClaimRequest c
+                        LEFT JOIN User u ON c.user_id = u.user_id
+                        LEFT JOIN LostItem l ON c.lost_id = l.lost_id
+                        LEFT JOIN FoundItem f ON c.found_id = f.found_id
+                        WHERE c.status = 'pending'
+                        ORDER BY c.claim_date DESC";
+        $stmt = $pdo->query($fallbackSql);
+        $pending_claims = $stmt->fetchAll();
+    }
 } catch (PDOException $e) {
     $pending_claims = [];
     $error = "Database error: " . $e->getMessage();

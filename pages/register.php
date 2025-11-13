@@ -75,6 +75,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../assets/style.css">
+    <style>
+        .admin-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .staff-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 125px;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -133,11 +147,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 
                 <div class="text-center mt-4 pt-3 border-top">
-                    <p class="small text-muted mb-0">Already have an account? <a href="login.php">Login here</a></p>
+                    <p class="small text-muted mb-0">Already have an account? <a href="index.php">Login here</a></p>
                 </div>
             </form>
         </div>
     </div>
+    <!-- Admin Login Button (Fixed at bottom right) -->
+    <a href="admin_login.php" class="btn btn-outline-secondary admin-btn">
+        <i class="bi bi-shield-lock"></i> Admin
+    </a>
+    <!-- Staff Login Button (Fixed at bottom right) -->
+    <a href="staff_login.php" class="btn btn-outline-secondary staff-btn">
+        <i class="bi bi-shield-lock"></i> Staff
+    </a>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

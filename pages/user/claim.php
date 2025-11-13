@@ -16,6 +16,49 @@ $claims = [];
 $reportedItems = [];
 $error = '';
 
+// Handle POST actions: delete report, delete claim, mark lost as found, mark found as returned
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    try {
+        $action = $_POST['action'];
+        if ($action === 'delete_report' && isset($_POST['item_type'], $_POST['item_id'])) {
+            $itemType = $_POST['item_type'];
+            $itemId = (int)$_POST['item_id'];
+            if ($itemType === 'lost') {
+                $stmt = $pdo->prepare("DELETE FROM LostItem WHERE lost_id = ? AND user_id = ?");
+                $stmt->execute([$itemId, $userId]);
+            } else {
+                $stmt = $pdo->prepare("DELETE FROM FoundItem WHERE found_id = ? AND user_id = ?");
+                $stmt->execute([$itemId, $userId]);
+            }
+        } elseif ($action === 'delete_claim' && isset($_POST['claim_id'])) {
+            $claimId = (int)$_POST['claim_id'];
+            $stmt = $pdo->prepare("DELETE FROM ClaimRequest WHERE claim_id = ? AND user_id = ?");
+            $stmt->execute([$claimId, $userId]);
+        } elseif ($action === 'mark_lost_found' && isset($_POST['item_id'])) {
+            $itemId = (int)$_POST['item_id'];
+            // mark lost item as claimed (owner marked as found)
+            $stmt = $pdo->prepare("UPDATE LostItem SET status = 'claimed' WHERE lost_id = ? AND user_id = ?");
+            $stmt->execute([$itemId, $userId]);
+        } elseif ($action === 'mark_found_returned' && isset($_POST['item_id'])) {
+            $itemId = (int)$_POST['item_id'];
+            // mark found item as returned
+            $stmt = $pdo->prepare("UPDATE FoundItem SET status = 'returned' WHERE found_id = ? AND user_id = ?");
+            $stmt->execute([$itemId, $userId]);
+        }
+    } catch (PDOException $e) {
+        error_log('Action Error: ' . $e->getMessage());
+        $error = 'An error occurred while processing your request. Please try again.';
+    }
+    // Redirect to avoid resubmission and to show updated lists
+    $redirect = 'claim.php';
+    header('Location: ' . $redirect);
+    exit();
+}
+
+// Filters for reported items
+$typeFilter = isset($_GET['type_filter']) ? $_GET['type_filter'] : 'all';
+$statusFilter = isset($_GET['status_filter']) ? $_GET['status_filter'] : 'all';
+
 // Pagination settings
 $claimsPerPage = 5;
 $reportsPerPage = 5;
@@ -26,81 +69,83 @@ try {
     // Database connection is already available from db.php
     $pdo = $pdo;
     
-    // Get user's claims with pagination
+    // Get user's claims with pagination (adjusted to actual schema: ClaimRequest, LostItem, FoundItem, User)
     $claimsOffset = ($claimsPage - 1) * $claimsPerPage;
-    $claimsStmt = $pdo->prepare("
-        SELECT c.*, 
-               CASE 
-                   WHEN c.item_type = 'lost' THEN l.item_name 
-                   ELSE f.item_name 
-               END as item_name,
-               CASE 
-                   WHEN c.item_type = 'lost' THEN l.image_path 
-                   ELSE f.image_path 
-               END as item_image,
-               u.full_name as owner_name,
-               u.email as owner_email
-        FROM claims c
-        LEFT JOIN lost_items l ON c.item_type = 'lost' AND c.item_id = l.item_id
-        LEFT JOIN found_items f ON c.item_type = 'found' AND c.item_id = f.item_id
-        LEFT JOIN users u ON u.user_id = CASE 
-                                          WHEN c.item_type = 'lost' THEN l.user_id 
-                                          ELSE f.user_id 
-                                        END
-        WHERE c.claimant_id = ?
-        ORDER BY c.created_at DESC
-        LIMIT ? OFFSET ?
-    ");
+    $claimsStmt = $pdo->prepare(
+    "SELECT c.*, c.claim_date AS created_at,
+                CASE WHEN c.lost_id IS NOT NULL THEN 'lost' ELSE 'found' END AS item_type,
+                COALESCE(l.item_name, f.item_name) AS item_name,
+                COALESCE(l.lost_id, f.found_id) AS item_id,
+                NULL AS item_image,
+                u_owner.username AS owner_name,
+                u_owner.email AS owner_email
+         FROM ClaimRequest c
+         LEFT JOIN LostItem l ON c.lost_id = l.lost_id
+         LEFT JOIN FoundItem f ON c.found_id = f.found_id
+         LEFT JOIN User u_owner ON u_owner.user_id = COALESCE(l.user_id, f.user_id)
+         WHERE c.user_id = ?
+         ORDER BY c.claim_date DESC
+         LIMIT ? OFFSET ?"
+    );
     $claimsStmt->execute([$userId, $claimsPerPage, $claimsOffset]);
     $claims = $claimsStmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Get total claims count for pagination
-    $totalClaimsStmt = $pdo->prepare("SELECT COUNT(*) FROM claims WHERE claimant_id = ?");
+    $totalClaimsStmt = $pdo->prepare("SELECT COUNT(*) FROM ClaimRequest WHERE user_id = ?");
     $totalClaimsStmt->execute([$userId]);
     $totalClaims = $totalClaimsStmt->fetchColumn();
     $totalClaimsPages = ceil($totalClaims / $claimsPerPage);
     
-    // Get user's reported items with pagination
+    // Get user's reported items with pagination (fetch both lists, then filter in PHP)
     $reportsOffset = ($reportsPage - 1) * $reportsPerPage;
-    
+
     // Get lost items reported by user
-    $lostItemsStmt = $pdo->prepare("
-        SELECT 'lost' as item_type, item_id, item_name, description, image_path, status, created_at
-        FROM lost_items 
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT ? OFFSET ?
-    ");
-    $lostItemsStmt->bindValue(1, $userId, PDO::PARAM_INT);
-    $lostItemsStmt->bindValue(2, $reportsPerPage, PDO::PARAM_INT);
-    $lostItemsStmt->bindValue(3, $reportsOffset, PDO::PARAM_INT);
-    $lostItemsStmt->execute();
+    $lostItemsStmt = $pdo->prepare(
+        "SELECT 'lost' AS item_type, lost_id AS item_id, item_name, description, NULL AS image_path, status, created_at
+         FROM LostItem
+         WHERE user_id = ?");
+    $lostItemsStmt->execute([$userId]);
     $lostItems = $lostItemsStmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Get found items reported by user
-    $foundItemsStmt = $pdo->prepare("
-        SELECT 'found' as item_type, item_id, item_name, description, image_path, status, created_at
-        FROM found_items 
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT ? OFFSET ?
-    ");
-    $foundItemsStmt->bindValue(1, $userId, PDO::PARAM_INT);
-    $foundItemsStmt->bindValue(2, $reportsPerPage, PDO::PARAM_INT);
-    $foundItemsStmt->bindValue(3, $reportsOffset, PDO::PARAM_INT);
-    $foundItemsStmt->execute();
+    $foundItemsStmt = $pdo->prepare(
+        "SELECT 'found' AS item_type, found_id AS item_id, item_name, description, NULL AS image_path, status, created_at
+         FROM FoundItem
+         WHERE user_id = ?");
+    $foundItemsStmt->execute([$userId]);
     $foundItems = $foundItemsStmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Combine lost and found items
     $reportedItems = array_merge($lostItems, $foundItems);
-    
-    // Get total reported items count for pagination
-    $totalLostStmt = $pdo->prepare("SELECT COUNT(*) FROM lost_items WHERE user_id = ?");
-    $totalFoundStmt = $pdo->prepare("SELECT COUNT(*) FROM found_items WHERE user_id = ?");
-    $totalLostStmt->execute([$userId]);
-    $totalFoundStmt->execute([$userId]);
-    $totalReportedItems = $totalLostStmt->fetchColumn() + $totalFoundStmt->fetchColumn();
+
+    // Apply filters in PHP (support combined status groups: open => pending|available, closed => claimed|returned)
+    $reportedItems = array_filter($reportedItems, function($it) use ($typeFilter, $statusFilter) {
+        if ($typeFilter !== 'all' && $it['item_type'] !== $typeFilter) return false;
+        if ($statusFilter !== 'all') {
+            $s = $it['status'] ?? '';
+            if ($statusFilter === 'open' && !in_array($s, ['pending', 'available'])) return false;
+            if ($statusFilter === 'closed' && !in_array($s, ['claimed', 'returned'])) return false;
+        }
+        return true;
+    });
+
+    // Sort by created_at desc
+    usort($reportedItems, function($a, $b) {
+        return strtotime($b['created_at']) <=> strtotime($a['created_at']);
+    });
+
+    // Paginate the filtered reported items
+    $totalReportedItems = count($reportedItems);
+    $reportedItems = array_slice($reportedItems, $reportsOffset, $reportsPerPage);
     $totalReportsPages = ceil($totalReportedItems / $reportsPerPage);
+    
+    // user lost/found counts for the profile-stats cards (keep counts unaffected by filters)
+    $totalLostStmt = $pdo->prepare("SELECT COUNT(*) FROM LostItem WHERE user_id = ?");
+    $totalFoundStmt = $pdo->prepare("SELECT COUNT(*) FROM FoundItem WHERE user_id = ?");
+    $totalLostStmt->execute([$userId]);
+    $userLostCount = (int)$totalLostStmt->fetchColumn();
+    $totalFoundStmt->execute([$userId]);
+    $userFoundCount = (int)$totalFoundStmt->fetchColumn();
     
 } catch (PDOException $e) {
     error_log('Database Error: ' . $e->getMessage());
@@ -153,21 +198,30 @@ try {
             margin-bottom: 1rem;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             transition: transform 0.2s, box-shadow 0.2s;
+            position: relative; /* needed for top-right badges */
         }
         .claim-card:hover, .report-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         .item-image {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 6px;
+            width: 72px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 12px;
             margin-right: 1rem;
+            font-size: 1.5rem;
+            color: #6c757d;
+            box-shadow: 0 4px 12px rgba(16,24,40,0.04);
         }
         .item-details {
             flex: 1;
         }
+        .item-main { flex: 1; }
+        .item-actions { display:flex; flex-direction:column; align-items:flex-end; gap: .5rem; margin-left: 1rem; }
         .item-title {
             font-weight: 600;
             color: #2c3e50;
@@ -203,6 +257,23 @@ try {
             background-color: #d1ecf1;
             color: #0c5460;
         }
+        .status-open { background-color: #e7f7ff; color: #055160; }
+        .status-closed { background-color: #e6f4ea; color: #155724; }
+    /* Type badge (lost/found) */
+    .item-type-badge { position: absolute; top: 12px; right: 12px; padding: .25rem .6rem; border-radius: 999px; font-weight:700; color:#fff; font-size: .8rem; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+    .item-type-lost { background: linear-gradient(135deg,#e53935,#ff6b6b); }
+    .item-type-found { background: linear-gradient(135deg,#28a745,#20c997); }
+        /* Button refinements */
+        .btn-rounded { border-radius: 999px; padding-left: .75rem; padding-right: .75rem; }
+        .btn-icon { display: inline-flex; align-items: center; gap: .5rem; }
+    .btn-circle { width: 38px; height: 38px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+    .btn-circle i { font-size: 1rem; }
+    .btn-mark { background: linear-gradient(135deg,#28a745,#20c997); border: none; color: #fff; box-shadow: 0 6px 18px rgba(32,201,151,0.12); }
+    .btn-mark:hover { filter: brightness(0.95); }
+    .btn-view { background: linear-gradient(135deg,#0d6efd,#4dabf7); border: none; color: #fff; box-shadow: 0 6px 18px rgba(13,110,253,0.12); }
+    .btn-delete { background: linear-gradient(135deg,#dc3545,#ff6b6b); border: none; color: #fff; box-shadow: 0 6px 18px rgba(220,53,69,0.12); }
+    .btn-mark-text { background: linear-gradient(135deg,#28a745,#20c997); border: none; color: #fff; padding: .35rem .75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: .5rem; box-shadow: 0 6px 18px rgba(32,201,151,0.12); }
+    .btn-mark-text i { margin-right: .35rem; }
         .pagination-container {
             display: flex;
             align-items: center;
@@ -225,6 +296,11 @@ try {
             margin-bottom: 1rem;
             display: block;
         }
+        /* Profile stats cards */
+        .profile-stats { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .stat-card { background: #fff; padding: 0.75rem 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); flex: 1; text-align: center; }
+        .stat-number { font-size: 1.5rem; font-weight: 700; color: #2c3e50; }
+        .stat-label { font-size: 0.85rem; color: #6c757d; }
     </style>
 </head>
 <body>
@@ -252,7 +328,7 @@ try {
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="userprofile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><a class="dropdown-item active" href="claim.php"><i class="bi bi-clipboard-check me-2"></i>My Claims</a></li>
+                            <li><a class="dropdown-item active" href="claim.php"><i class="bi bi-clipboard-check me-2"></i>My Claims and Reports</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
@@ -267,6 +343,22 @@ try {
             <i class="bi bi-arrow-left"></i> Back to Dashboard
         </a>
         
+        <!-- Profile stats -->
+        <div class="profile-stats mb-3 d-flex">
+            <div class="stat-card">
+                <div class="stat-number"><?php echo number_format($userLostCount ?? 0); ?></div>
+                <div class="stat-label">Your Lost Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?php echo number_format($userFoundCount ?? 0); ?></div>
+                <div class="stat-label">Your Found Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?php echo number_format($totalClaims ?? 0); ?></div>
+                <div class="stat-label">Your Claims</div>
+            </div>
+        </div>
+        
         <?php if ($error): ?>
             <div class="alert alert-danger">
                 <?php echo htmlspecialchars($error); ?>
@@ -274,7 +366,155 @@ try {
         <?php endif; ?>
         
         <div class="row g-4">
-            <!-- My Claim Requests -->
+            <!-- My Reported Items (left) -->
+            <div class="col-lg-6">
+                <h3 class="list-section-title">My Reported Items</h3>
+                <div class="bg-light p-3 p-md-4 rounded shadow-sm h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                                <i class="bi bi-funnel-fill"></i> Filters
+                            </button>
+                            <a href="claim.php" class="btn btn-sm btn-outline-secondary ms-2">Reset</a>
+                        </div>
+                        <div class="text-muted small">Showing <?php echo number_format($totalReportedItems); ?> reports</div>
+                    </div>
+
+                    <?php if (empty($reportedItems)): ?>
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>You haven't reported any items yet.</p>
+                            <div class="mt-3">
+                                <a href="lost.php" class="btn btn-primary me-2">
+                                    <i class="bi bi-plus-circle me-1"></i> Report Lost Item
+                                </a>
+                                <a href="found.php" class="btn btn-outline-primary">
+                                    <i class="bi bi-plus-circle me-1"></i> Report Found Item
+                                </a>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="scrollable-box" id="reportedItems">
+                            <?php foreach ($reportedItems as $item): ?>
+                                <?php
+                                    $raw = $item['status'] ?? '';
+                                    if (in_array($raw, ['pending','available'])) { $disp = 'Open'; $cls = 'open'; }
+                                    elseif (in_array($raw, ['claimed','returned'])) { $disp = 'Closed'; $cls = 'closed'; }
+                                    else { $disp = ucfirst($raw); $cls = strtolower($raw); }
+                                ?>
+                                <div class="report-card d-flex align-items-start">
+                                    <?php /* type badge top-right */ ?>
+                                    <div class="item-type-badge <?php echo $item['item_type'] === 'lost' ? 'item-type-lost' : 'item-type-found'; ?>">
+                                        <?php echo ucfirst($item['item_type']); ?>
+                                    </div>
+                                    <div class="item-image">
+                                        <i class="bi bi-collection"></i>
+                                    </div>
+                                    <div class="item-details">
+                                        <h5 class="item-title"><?php echo htmlspecialchars($item['item_name']); ?></h5>
+                                        <div class="item-meta">
+                                            <div><i class="bi bi-calendar3 me-1"></i> <?php echo date('M j, Y', strtotime($item['created_at'])); ?></div>
+                                            <div class="text-truncate" style="max-width: 250px;" title="<?php echo htmlspecialchars($item['description']); ?>">
+                                                <?php 
+                                                $shortDesc = strlen($item['description']) > 50 
+                                                    ? substr($item['description'], 0, 50) . '...' 
+                                                    : $item['description'];
+                                                echo htmlspecialchars($shortDesc);
+                                                ?>
+                                            </div>
+                                        </div>
+                                        <!-- status back on the left -->
+                                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <span class="status-badge status-<?php echo $cls; ?>">
+                                                    <?php echo $disp; ?>
+                                                </span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <a href="item_detail.php?type=<?php echo $item['item_type']; ?>&id=<?php echo $item['item_id']; ?>" 
+                                                   class="btn btn-sm btn-circle btn-view" title="View">
+                                                    <i class="bi bi-eye-fill"></i>
+                                                </a>
+                                                <!-- Delete report form -->
+                                                <form method="post" class="d-inline" onsubmit="return confirm('Delete this report?');">
+                                                    <input type="hidden" name="action" value="delete_report">
+                                                    <input type="hidden" name="item_type" value="<?php echo $item['item_type']; ?>">
+                                                    <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                                                    <button class="btn btn-sm btn-circle btn-delete" type="submit" title="Delete"><i class="bi bi-trash-fill"></i></button>
+                                                </form>
+                                                <?php if ($item['item_type'] === 'lost' && $item['status'] !== 'claimed'): ?>
+                                                    <form method="post" class="d-inline" onsubmit="return confirm('Mark this lost item as found?');">
+                                                        <input type="hidden" name="action" value="mark_lost_found">
+                                                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                                                        <button class="btn btn-sm btn-mark-text" type="submit" title="Mark Found"><i class="bi bi-bell-check-fill"></i> Mark Found</button>
+                                                    </form>
+                                                <?php elseif ($item['item_type'] === 'found' && $item['status'] !== 'returned'): ?>
+                                                    <form method="post" class="d-inline" onsubmit="return confirm('Mark this found item as returned?');">
+                                                        <input type="hidden" name="action" value="mark_found_returned">
+                                                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                                                        <button class="btn btn-sm btn-mark-text" type="submit" title="Mark Returned"><i class="bi bi-box-arrow-in-left"></i> Mark Returned</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php if ($totalReportsPages > 1): ?>
+                            <div class="pagination-container">
+                                <a href="?reports_page=<?php echo max(1, $reportsPage - 1); ?>#reportedItems" 
+                                   class="btn btn-sm btn-outline-secondary <?php echo $reportsPage <= 1 ? 'disabled' : ''; ?>">
+                                    Previous
+                                </a>
+                                <span class="page-info">Page <?php echo $reportsPage; ?> of <?php echo $totalReportsPages; ?></span>
+                                <a href="?reports_page=<?php echo min($totalReportsPages, $reportsPage + 1); ?>#reportedItems" 
+                                   class="btn btn-sm btn-outline-secondary <?php echo $reportsPage >= $totalReportsPages ? 'disabled' : ''; ?>">
+                                    Next
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Filter Modal (placed once at page level, outside the loop) -->
+            <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="filterModalLabel">Filter Reports</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form method="get">
+                        <div class="modal-body">
+                            <div class="mb-2">
+                                <label class="form-label">Type</label>
+                                <select name="type_filter" class="form-select form-select-sm">
+                                    <option value="all" <?php echo $typeFilter === 'all' ? 'selected' : ''; ?>>All</option>
+                                    <option value="lost" <?php echo $typeFilter === 'lost' ? 'selected' : ''; ?>>Lost</option>
+                                    <option value="found" <?php echo $typeFilter === 'found' ? 'selected' : ''; ?>>Found</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Status</label>
+                                <select name="status_filter" class="form-select form-select-sm">
+                                    <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All</option>
+                                    <option value="open" <?php echo $statusFilter === 'open' ? 'selected' : ''; ?>>Open (pending/available)</option>
+                                    <option value="closed" <?php echo $statusFilter === 'closed' ? 'selected' : ''; ?>>Closed (claimed/returned)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="claim.php" class="btn btn-sm btn-outline-secondary">Reset</a>
+                            <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+                        </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Claim Requests (right) -->
             <div class="col-lg-6">
                 <h3 class="list-section-title">My Claim Requests</h3>
                 <div class="bg-light p-3 p-md-4 rounded shadow-sm h-100">
@@ -289,28 +529,34 @@ try {
                     <?php else: ?>
                         <div class="scrollable-box" id="claimRequests">
                             <?php foreach ($claims as $claim): ?>
-                                <div class="claim-card d-flex">
-                                    <?php if (!empty($claim['item_image'])): ?>
-                                        <img src="/Lost-Found/<?php echo htmlspecialchars($claim['item_image']); ?>" 
-                                             class="item-image" 
-                                             alt="<?php echo htmlspecialchars($claim['item_name']); ?>">
-                                    <?php else: ?>
-                                        <div class="item-image bg-light d-flex align-items-center justify-content-center">
-                                            <i class="bi bi-image text-muted"></i>
-                                        </div>
-                                    <?php endif; ?>
+                                <div class="claim-card d-flex align-items-start">
+                                    <div class="item-image">
+                                        <i class="bi bi-box-seam"></i>
+                                    </div>
                                     <div class="item-details">
                                         <h5 class="item-title"><?php echo htmlspecialchars($claim['item_name']); ?></h5>
                                         <div class="item-meta">
                                             <div><i class="bi bi-tag-fill me-1"></i> <?php echo ucfirst($claim['item_type']); ?> Item</div>
                                             <div><i class="bi bi-calendar3 me-1"></i> <?php echo date('M j, Y', strtotime($claim['created_at'])); ?></div>
                                             <?php if (!empty($claim['owner_name'])): ?>
-                                                <div><i class="bi bi-person-fill me-1"></i> Owner: <?php echo htmlspecialchars($claim['owner_name']); ?></div>
+                                                <div><i class="bi bi-person-fill me-1"></i> Finder: <?php echo htmlspecialchars($claim['owner_name']); ?></div>
                                             <?php endif; ?>
                                         </div>
-                                        <span class="status-badge status-<?php echo strtolower($claim['status']); ?>">
-                                            <?php echo ucfirst($claim['status']); ?>
-                                        </span>
+                                        <div class="d-flex align-items-center gap-2 mt-2">
+                                            <div style="flex:1;"></div>
+                                            <div style="display:flex; gap: .75rem; align-items:center;">
+                                                <span class="status-badge status-<?php echo strtolower($claim['status']); ?>">
+                                                    <?php echo ucfirst($claim['status']); ?>
+                                                </span>
+                                                <div style="margin-left:auto;">
+                                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this claim?');">
+                                                        <input type="hidden" name="action" value="delete_claim">
+                                                        <input type="hidden" name="claim_id" value="<?php echo $claim['claim_id']; ?>">
+                                                        <button class="btn btn-sm btn-circle btn-delete" type="submit" title="Delete"><i class="bi bi-trash-fill"></i></button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <?php if (!empty($claim['admin_notes'])): ?>
                                             <div class="mt-2 small text-muted">
                                                 <strong>Note:</strong> <?php echo htmlspecialchars($claim['admin_notes']); ?>
@@ -329,78 +575,6 @@ try {
                                 <span class="page-info">Page <?php echo $claimsPage; ?> of <?php echo $totalClaimsPages; ?></span>
                                 <a href="?claims_page=<?php echo min($totalClaimsPages, $claimsPage + 1); ?>#claimRequests" 
                                    class="btn btn-sm btn-outline-secondary <?php echo $claimsPage >= $totalClaimsPages ? 'disabled' : ''; ?>">
-                                    Next
-                                </a>
-                            </div>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- My Reported Items -->
-            <div class="col-lg-6">
-                <h3 class="list-section-title">My Reported Items</h3>
-                <div class="bg-light p-3 p-md-4 rounded shadow-sm h-100">
-                    <?php if (empty($reportedItems)): ?>
-                        <div class="empty-state">
-                            <i class="bi bi-inbox"></i>
-                            <p>You haven't reported any items yet.</p>
-                            <div class="mt-3">
-                                <a href="lost.php" class="btn btn-primary me-2">
-                                    <i class="bi bi-plus-circle me-1"></i> Report Lost Item
-                                </a>
-                                <a href="found.php" class="btn btn-outline-primary">
-                                    <i class="bi bi-plus-circle me-1"></i> Report Found Item
-                                </a>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="scrollable-box" id="reportedItems">
-                            <?php foreach ($reportedItems as $item): ?>
-                                <div class="report-card d-flex">
-                                    <?php if (!empty($item['image_path'])): ?>
-                                        <img src="/Lost-Found/<?php echo htmlspecialchars($item['image_path']); ?>" 
-                                             class="item-image" 
-                                             alt="<?php echo htmlspecialchars($item['item_name']); ?>">
-                                    <?php else: ?>
-                                        <div class="item-image bg-light d-flex align-items-center justify-content-center">
-                                            <i class="bi bi-image text-muted"></i>
-                                        </div>
-                                    <?php endif; ?>
-                                    <div class="item-details">
-                                        <h5 class="item-title"><?php echo htmlspecialchars($item['item_name']); ?></h5>
-                                        <div class="item-meta">
-                                            <div><i class="bi bi-tag-fill me-1"></i> <?php echo ucfirst($item['item_type']); ?> Item</div>
-                                            <div><i class="bi bi-calendar3 me-1"></i> <?php echo date('M j, Y', strtotime($item['created_at'])); ?></div>
-                                            <div class="text-truncate" style="max-width: 250px;" title="<?php echo htmlspecialchars($item['description']); ?>">
-                                                <?php 
-                                                $shortDesc = strlen($item['description']) > 50 
-                                                    ? substr($item['description'], 0, 50) . '...' 
-                                                    : $item['description'];
-                                                echo htmlspecialchars($shortDesc);
-                                                ?>
-                                            </div>
-                                        </div>
-                                        <span class="status-badge status-<?php echo strtolower($item['status']); ?>">
-                                            <?php echo ucfirst($item['status']); ?>
-                                        </span>
-                                        <a href="item_detail.php?type=<?php echo $item['item_type']; ?>&id=<?php echo $item['item_id']; ?>" 
-                                           class="btn btn-sm btn-outline-primary mt-2 d-inline-block">
-                                            View Details
-                                        </a>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php if ($totalReportsPages > 1): ?>
-                            <div class="pagination-container">
-                                <a href="?reports_page=<?php echo max(1, $reportsPage - 1); ?>#reportedItems" 
-                                   class="btn btn-sm btn-outline-secondary <?php echo $reportsPage <= 1 ? 'disabled' : ''; ?>">
-                                    Previous
-                                </a>
-                                <span class="page-info">Page <?php echo $reportsPage; ?> of <?php echo $totalReportsPages; ?></span>
-                                <a href="?reports_page=<?php echo min($totalReportsPages, $reportsPage + 1); ?>#reportedItems" 
-                                   class="btn btn-sm btn-outline-secondary <?php echo $reportsPage >= $totalReportsPages ? 'disabled' : ''; ?>">
                                     Next
                                 </a>
                             </div>

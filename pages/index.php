@@ -53,6 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             right: 20px;
             z-index: 1000;
         }
+        .staff-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 125px;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -89,10 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
     </div>
-    
+
     <!-- Admin Login Button (Fixed at bottom right) -->
     <a href="admin_login.php" class="btn btn-outline-secondary admin-btn">
         <i class="bi bi-shield-lock"></i> Admin
+    </a>
+    <!-- Staff Login Button (Fixed at bottom right) -->
+    <a href="staff_login.php" class="btn btn-outline-secondary staff-btn">
+        <i class="bi bi-shield-lock"></i> Staff
     </a>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
