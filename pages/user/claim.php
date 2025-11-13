@@ -304,39 +304,7 @@ try {
     </style>
 </head>
 <body>
-    <header class="app-header shadow-sm">
-        <div class="container py-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <a href="userdash.php" class="logo">
-                    <i class="bi bi-search-heart logo-icon"></i>
-                    Lost&Found
-                </a>
-                <div class="d-flex align-items-center gap-3">
-                    <a href="userdash.php" class="dashboard-btn d-flex align-items-center gap-2">
-                        <i class="bi bi-house-door-fill"></i> Dashboard
-                    </a>
-                    <div class="dropdown">
-                        <button class="btn btn-link text-decoration-none p-0 border-0 bg-transparent dropdown-toggle d-flex align-items-center" 
-                                type="button" 
-                                id="userDropdown" 
-                                data-bs-toggle="dropdown" 
-                                aria-expanded="false">
-                            <div class="profile-icon me-2">
-                                <i class="bi bi-person-fill"></i>
-                            </div>
-                            <span id="usernameDisplay" class="d-none d-md-inline"><?php echo htmlspecialchars($userName); ?></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="userprofile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><a class="dropdown-item active" href="claim.php"><i class="bi bi-clipboard-check me-2"></i>My Claims and Reports</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+    <?php include 'includes/header.php'; ?>
 
     <main class="container py-5">
         <a href="userdash.php" class="btn btn-link text-dark text-decoration-none mb-4">

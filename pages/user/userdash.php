@@ -144,8 +144,8 @@ try {
      <!-- CTA Section -->
     <section class="cta-section">
         <div class="container">
-            <h2 class="cta-title">Track Your Reports?</h2>
-            <p class="cta-text">You can track your reports and claims here.</p>
+            <h2 class="cta-title">Track Your Reports</h2>
+            <p class="cta-text">You can see your reports and claims here.</p>
             <a href="claim.php" class="btn btn-cta">View Your Claims & Reports</a>
         </div>
     </section>
