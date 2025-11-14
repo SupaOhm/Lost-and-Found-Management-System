@@ -1,5 +1,7 @@
 <?php
+session_start();
 require_once '../../config/db.php';
+
 
 // Handle delete actions
 if (isset($_GET['delete'])) {
