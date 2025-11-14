@@ -69,26 +69,33 @@ try {
     // Database connection is already available from db.php
     $pdo = $pdo;
     
-    // Get user's claims with pagination (adjusted to actual schema: ClaimRequest, LostItem, FoundItem, User)
+    // Get user's claims with pagination (claims reference found items only via found_id)
     $claimsOffset = ($claimsPage - 1) * $claimsPerPage;
-    $claimsStmt = $pdo->prepare(
-    "SELECT c.*, c.claim_date AS created_at,
-                CASE WHEN c.lost_id IS NOT NULL THEN 'lost' ELSE 'found' END AS item_type,
-                COALESCE(l.item_name, f.item_name) AS item_name,
-                COALESCE(l.lost_id, f.found_id) AS item_id,
+    // Some PDO drivers do not allow binding LIMIT/OFFSET; inject integer values safely after casting
+    $limit = (int)$claimsPerPage;
+    $offset = (int)$claimsOffset;
+    $sql = "SELECT c.*, c.claim_date AS created_at,
+                'found' AS item_type,
+                f.item_name AS item_name,
+                f.found_id AS item_id,
                 NULL AS item_image,
                 u_owner.username AS owner_name,
                 u_owner.email AS owner_email
          FROM ClaimRequest c
-         LEFT JOIN LostItem l ON c.lost_id = l.lost_id
          LEFT JOIN FoundItem f ON c.found_id = f.found_id
-         LEFT JOIN User u_owner ON u_owner.user_id = COALESCE(l.user_id, f.user_id)
-         WHERE c.user_id = ?
+         LEFT JOIN User u_owner ON u_owner.user_id = f.user_id
+         WHERE c.user_id = :uid
          ORDER BY c.claim_date DESC
-         LIMIT ? OFFSET ?"
-    );
-    $claimsStmt->execute([$userId, $claimsPerPage, $claimsOffset]);
-    $claims = $claimsStmt->fetchAll(PDO::FETCH_ASSOC);
+         LIMIT $limit OFFSET $offset";
+
+    try {
+        $claimsStmt = $pdo->prepare($sql);
+        $claimsStmt->execute([':uid' => $userId]);
+        $claims = $claimsStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Claims Query Error: ' . $e->getMessage());
+        $claims = [];
+    }
 
     // Get total claims count for pagination
     $totalClaimsStmt = $pdo->prepare("SELECT COUNT(*) FROM ClaimRequest WHERE user_id = ?");
@@ -150,6 +157,24 @@ try {
 } catch (PDOException $e) {
     error_log('Database Error: ' . $e->getMessage());
     $error = 'An error occurred while loading your claims and reports. Please try again later.';
+}
+
+// Optional debug: show raw claim rows when requested
+$showDebugClaims = isset($_GET['debug_claims']) && $_GET['debug_claims'] == '1';
+if ($showDebugClaims) {
+    try {
+        $dbg = $pdo->prepare('SELECT * FROM ClaimRequest WHERE user_id = ? ORDER BY claim_date DESC');
+        $dbg->execute([$userId]);
+        $rawClaims = $dbg->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Also run the full join query to see what's being returned
+        $dbgJoin = $pdo->prepare($sql);
+        $dbgJoin->execute([':uid' => $userId]);
+        $debugJoinResults = $dbgJoin->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $rawClaims = ['error' => $e->getMessage()];
+        $debugJoinResults = ['error' => $e->getMessage()];
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -493,9 +518,24 @@ try {
                         <div class="empty-state">
                             <i class="bi bi-inbox"></i>
                             <p>You haven't made any claims yet.</p>
-                            <a href="search.php" class="btn btn-primary">
+                            <?php if (isset($totalClaims) && $totalClaims == 0): ?>
+                                <small class="text-muted">No claim records were found for your account.</small>
+                            <?php else: ?>
+                                <small class="text-muted">If you recently submitted a claim, please wait a moment and refresh.</small>
+                            <?php endif; ?>
+                            <a href="search.php" class="btn btn-primary mt-3">
                                 <i class="bi bi-search me-1"></i> Browse Items
                             </a>
+                            <?php if (!empty($showDebugClaims)): ?>
+                                <div class="mt-3 text-start">
+                                    <h6>Debug: raw ClaimRequest rows</h6>
+                                    <pre style="max-height:200px; overflow:auto; background:#f8f9fa; padding:1rem; border-radius:6px; font-size:0.75rem;"><?php echo htmlspecialchars(print_r($rawClaims, true)); ?></pre>
+                                    <h6 class="mt-3">Debug: JOIN query results</h6>
+                                    <pre style="max-height:200px; overflow:auto; background:#f8f9fa; padding:1rem; border-radius:6px; font-size:0.75rem;"><?php echo htmlspecialchars(print_r($debugJoinResults, true)); ?></pre>
+                                    <h6 class="mt-3">SQL used:</h6>
+                                    <pre style="max-height:150px; overflow:auto; background:#f8f9fa; padding:1rem; border-radius:6px; font-size:0.7rem;"><?php echo htmlspecialchars($sql); ?></pre>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php else: ?>
                         <div class="scrollable-box" id="claimRequests">

@@ -8,13 +8,7 @@ INSERT INTO User (username, password, email, phone) VALUES
 
 -- Admins
 INSERT INTO Admin (username, password, email) VALUES
-('admin1', 'adminpass1', 'admin1@example.com'),
-('admin2', 'adminpass2', 'admin2@example.com');
-
--- Staff
-INSERT INTO Staff (username, password, email) VALUES
-('staff1', 'staffpass1', 'staff1@example.com'),
-('staff2', 'staffpass2', 'staff2@example.com');
+('admin', '$2y$10$TzAzmz1sLVwY/eAbdKx2desbdQj.y2mCoJdAIm26jqttGZDZ8pvUe', 'admin1@example.com');
 
 -- Lost Items
 INSERT INTO LostItem (user_id, item_name, description, category, location, lost_date, status) VALUES
@@ -27,6 +21,6 @@ INSERT INTO FoundItem (user_id, item_name, description, category, location, foun
 (1, 'Silver Watch', 'Discovered in the gym locker room.', 'Accessories', 'Gym', '2025-10-30', 'available');
 
 -- Claim Requests
-INSERT INTO ClaimRequest (lost_id, user_id, description, status, claim_date, approved_by, approved_date) VALUES
-(1, 2, 'I lost my wallet near the library. Please check if it is mine.', 'pending', '2025-11-03', NULL, NULL),
-(2, 3, 'I think the backpack is mine. It has a math textbook inside.', 'pending', '2025-11-05', NULL, NULL);
+INSERT INTO ClaimRequest (found_id, user_id, description, status, claim_date, approved_by, approved_date) VALUES
+(1, 2, 'I believe this umbrella is mine; it has a distinct sticker on the handle.', 'pending', '2025-11-03', NULL, NULL),
+(2, 3, 'I think this watch belongs to me; it has an engraving on the back.', 'pending', '2025-11-05', NULL, NULL);

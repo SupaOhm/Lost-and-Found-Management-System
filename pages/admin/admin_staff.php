@@ -38,29 +38,16 @@ if (isset($_POST['add_staff'])) {
     }
 }
 
-// Handle toggle staff status
-if (isset($_GET['toggle_status'])) {
-    $staff_id = $_GET['toggle_status'];
-    
-    try {
-        $pdo->query("UPDATE staff SET is_active = NOT is_active WHERE staff_id = $staff_id");
-        $success = "Staff status updated successfully!";
-    } catch (Exception $e) {
-        $error = "Error updating staff status: " . $e->getMessage();
-    }
-}
-
 // Get all staff
 try {
     $staff = $pdo->query("SELECT * FROM staff ORDER BY created_at DESC")->fetchAll();
     
     // Get counts
     $total_staff = count($staff);
-    $active_staff = $pdo->query("SELECT COUNT(*) FROM staff WHERE is_active = TRUE")->fetchColumn();
     
 } catch (PDOException $e) {
     $staff = [];
-    $total_staff = $active_staff = 0;
+    $total_staff = 0;
     $error = "Error loading staff data: " . $e->getMessage();
 }
 
@@ -126,7 +113,6 @@ if (isset($_GET['view_staff'])) {
                     <h2>Manage Staff Accounts</h2>
                     <div>
                         <span class="badge bg-primary me-2">Total: <?php echo $total_staff; ?></span>
-                        <span class="badge bg-success me-2">Active: <?php echo $active_staff; ?></span>
                     </div>
                 </div>
 
@@ -161,21 +147,11 @@ if (isset($_GET['view_staff'])) {
                                 <div class="col-md-6">
                                     <p><strong>Phone:</strong> <?php echo $staff_details['phone'] ?: 'Not set'; ?></p>
                                     <p><strong>Account Created:</strong> <?php echo date('M j, Y', strtotime($staff_details['created_at'])); ?></p>
-                                    <p><strong>Status:</strong> 
-                                        <span class="badge bg-<?php echo $staff_details['is_active'] ? 'success' : 'secondary'; ?>">
-                                            <?php echo $staff_details['is_active'] ? 'Active' : 'Inactive'; ?>
-                                        </span>
-                                    </p>
                                 </div>
                             </div>
                             <div class="mt-3">
                                 <a href="admin_staff.php" class="btn btn-secondary">
                                     <i class="bi bi-arrow-left"></i> Back to Staff List
-                                </a>
-                                <a href="?toggle_status=<?php echo $staff_details['staff_id']; ?>" 
-                                   class="btn btn-<?php echo $staff_details['is_active'] ? 'warning' : 'success'; ?>">
-                                    <i class="bi bi-<?php echo $staff_details['is_active'] ? 'pause' : 'play'; ?>"></i> 
-                                    <?php echo $staff_details['is_active'] ? 'Deactivate' : 'Activate'; ?>
                                 </a>
                                 <a href="?delete_staff=<?php echo $staff_details['staff_id']; ?>" 
                                    class="btn btn-danger"
@@ -250,7 +226,6 @@ if (isset($_GET['view_staff'])) {
                                             <th>Username</th>
                                             <th>Full Name</th>
                                             <th>Email</th>
-                                            <th>Status</th>
                                             <th>Created</th>
                                             <th>Actions</th>
                                         </tr>
@@ -262,11 +237,6 @@ if (isset($_GET['view_staff'])) {
                                             <td><?php echo $staff_member['username']; ?></td>
                                             <td><?php echo $staff_member['full_name'] ?: 'N/A'; ?></td>
                                             <td><?php echo $staff_member['email']; ?></td>
-                                            <td>
-                                                <span class="badge bg-<?php echo $staff_member['is_active'] ? 'success' : 'secondary'; ?>">
-                                                    <?php echo $staff_member['is_active'] ? 'Active' : 'Inactive'; ?>
-                                                </span>
-                                            </td>
                                             <td><?php echo date('M j, Y', strtotime($staff_member['created_at'])); ?></td>
                                             <td>
                                                 <div class="btn-group btn-group-sm" role="group">
@@ -275,12 +245,6 @@ if (isset($_GET['view_staff'])) {
                                                        data-bs-toggle="tooltip" 
                                                        title="View Staff Details">
                                                         <i class="bi bi-eye"></i>
-                                                    </a>
-                                                    <a href="?toggle_status=<?php echo $staff_member['staff_id']; ?>" 
-                                                       class="btn btn-<?php echo $staff_member['is_active'] ? 'warning' : 'success'; ?>"
-                                                       data-bs-toggle="tooltip" 
-                                                       title="<?php echo $staff_member['is_active'] ? 'Deactivate' : 'Activate'; ?> Staff">
-                                                        <i class="bi bi-<?php echo $staff_member['is_active'] ? 'pause' : 'play'; ?>"></i>
                                                     </a>
                                                     <a href="?delete_staff=<?php echo $staff_member['staff_id']; ?>" 
                                                        class="btn btn-danger"

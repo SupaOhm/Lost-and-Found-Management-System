@@ -41,10 +41,11 @@ CREATE TABLE Staff (
     username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100),
+    full_name VARCHAR(100),
+    phone VARCHAR(20),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-insert into `Admin`(`username`, `password`, `email`) values('admin', 'admin', 'admin@admin.com');
 -- Stored procedure to verify admin login
 
 
@@ -65,14 +66,14 @@ CREATE TABLE FoundItem (
 -- CLAIM REQUEST TABLE
 CREATE TABLE ClaimRequest (
     claim_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    lost_id BIGINT,
+    found_id BIGINT,
     description VARCHAR(500),
     user_id BIGINT,
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     claim_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     approved_by BIGINT NULL,
     approved_date DATETIME NULL,
-    FOREIGN KEY (lost_id) REFERENCES LostItem(lost_id),
+    FOREIGN KEY (found_id) REFERENCES FoundItem(found_id),
     FOREIGN KEY (user_id) REFERENCES User(user_id),
     FOREIGN KEY (approved_by) REFERENCES Admin(admin_id)
 );

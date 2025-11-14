@@ -142,13 +142,13 @@ END$$
 
 
 CREATE PROCEDURE SubmitClaimRequest(
-    IN p_lost_id BIGINT,
+    IN p_found_id BIGINT,
     IN p_user_id BIGINT,
     IN p_description TEXT
 )
 BEGIN
-    INSERT INTO ClaimRequest (lost_id, user_id, description)
-    VALUES (p_lost_id, p_user_id, p_description);
+    INSERT INTO ClaimRequest (found_id, user_id, description)
+    VALUES (p_found_id, p_user_id, p_description);
 END$$
 
 -- View Claim Requests by User
@@ -156,9 +156,9 @@ CREATE PROCEDURE ViewUserClaims(
     IN p_user_id INT
 )
 BEGIN
-    SELECT c.claim_id, c.description AS claim_description, l.item_name AS lost_item, c.status, c.claim_date
+    SELECT c.claim_id, c.description AS claim_description, f.item_name AS found_item, c.status, c.claim_date
     FROM ClaimRequest c
-    LEFT JOIN LostItem l ON c.lost_id = l.lost_id
+    LEFT JOIN FoundItem f ON c.found_id = f.found_id
     WHERE c.user_id = p_user_id
     ORDER BY c.claim_date DESC;
 END$$
@@ -169,12 +169,12 @@ BEGIN
     SELECT c.claim_id,
            u.username AS requester,
            c.description AS claim_description,
-           l.item_name AS lost_item,
+           f.item_name AS found_item,
            c.status,
            c.claim_date
     FROM ClaimRequest c
     LEFT JOIN User u ON c.user_id = u.user_id
-    LEFT JOIN LostItem l ON c.lost_id = l.lost_id
+    LEFT JOIN FoundItem f ON c.found_id = f.found_id
     WHERE c.status = 'pending'
     ORDER BY c.claim_date DESC;
 END$$
@@ -389,8 +389,10 @@ AFTER UPDATE ON ClaimRequest
 FOR EACH ROW
 BEGIN
     IF NEW.status = 'approved' THEN
-        UPDATE LostItem SET status = 'claimed' WHERE lost_id = NEW.lost_id;
-        -- No found_id in ClaimRequest schema, so skip FoundItem update
+        IF NEW.found_id IS NOT NULL THEN
+            -- When a claim on a found item is approved, mark the found item as returned
+            UPDATE FoundItem SET status = 'returned' WHERE found_id = NEW.found_id;
+        END IF;
     END IF;
 END$$
 
@@ -400,8 +402,10 @@ AFTER UPDATE ON ClaimRequest
 FOR EACH ROW
 BEGIN
     IF NEW.status = 'rejected' THEN
-        UPDATE LostItem SET status = 'pending' WHERE lost_id = NEW.lost_id;
-        -- No found_id in ClaimRequest schema, so skip FoundItem update
+        IF NEW.found_id IS NOT NULL THEN
+            -- When a claim on a found item is rejected, make it available again
+            UPDATE FoundItem SET status = 'available' WHERE found_id = NEW.found_id;
+        END IF;
     END IF;
 END$$
 
@@ -412,22 +416,22 @@ END$$
 
 -- Submit a new claim
 CREATE PROCEDURE SubmitClaim(
-    IN p_lost_id BIGINT,
+    IN p_found_id BIGINT,
     IN p_user_id BIGINT,
     IN p_description TEXT
 )
 BEGIN
     DECLARE v_status VARCHAR(20);
-    -- Check if item exists and is claimable
-    SELECT status INTO v_status FROM LostItem WHERE lost_id = p_lost_id;
-    IF v_status != 'pending' THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This lost item is not available for claiming';
+    -- Check if found item exists and is claimable
+    SELECT status INTO v_status FROM FoundItem WHERE found_id = p_found_id;
+    IF v_status != 'available' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This found item is not available for claiming';
     END IF;
-    -- Insert the claim
-    INSERT INTO ClaimRequest (lost_id, user_id, description, status, claim_date)
-    VALUES (p_lost_id, p_user_id, p_description, 'pending', NOW());
-    -- Update item status
-    UPDATE LostItem SET status = 'claimed' WHERE lost_id = p_lost_id;
+    -- Insert the claim referencing the found item
+    INSERT INTO ClaimRequest (found_id, user_id, description, status, claim_date)
+    VALUES (p_found_id, p_user_id, p_description, 'pending', NOW());
+    -- Update found item status to indicate it's pending/returned
+    UPDATE FoundItem SET status = 'returned' WHERE found_id = p_found_id;
     SELECT LAST_INSERT_ID() as claim_id;
 END$$
 
@@ -441,14 +445,14 @@ BEGIN
         cr.claim_date,
         cr.status,
         cr.approved_date,
-        li.item_name as item_name,
-        li.description as item_description,
-        li.location as location,
-        li.lost_date as item_date,
+        fi.item_name as item_name,
+        fi.description as item_description,
+        fi.location as location,
+        fi.found_date as item_date,
         u.username as reported_by
     FROM ClaimRequest cr
-    LEFT JOIN LostItem li ON cr.lost_id = li.lost_id
-    LEFT JOIN User u ON li.user_id = u.user_id
+    LEFT JOIN FoundItem fi ON cr.found_id = fi.found_id
+    LEFT JOIN User u ON fi.user_id = u.user_id
     WHERE cr.user_id = p_user_id
     ORDER BY cr.claim_date DESC;
 END$$
@@ -465,17 +469,17 @@ BEGIN
         cr.status,
         cr.description AS claim_description,
         cr.approved_date,
-        li.item_name as item_name,
-        li.description as item_description,
-        li.category as category,
-        li.location as location,
-        li.lost_date as item_date,
+        fi.item_name as item_name,
+        fi.description as item_description,
+        fi.category as category,
+        fi.location as location,
+        fi.found_date as item_date,
         u.username as reported_by,
         u.email as reporter_email,
         u.phone as reporter_phone
     FROM ClaimRequest cr
-    LEFT JOIN LostItem li ON cr.lost_id = li.lost_id
-    LEFT JOIN User u ON li.user_id = u.user_id
+    LEFT JOIN FoundItem fi ON cr.found_id = fi.found_id
+    LEFT JOIN User u ON fi.user_id = u.user_id
     WHERE cr.claim_id = p_claim_id 
     AND (cr.user_id = p_user_id OR p_user_id IS NULL);
 END$$
