@@ -48,12 +48,13 @@ try {
     <link rel="stylesheet" href="../../assets/admin-style.css">
 </head>
 <body>
+    <?php include('includes/header.php'); ?>
     <div class="admin-container">
         <!-- Sidebar -->
         <div class="admin-sidebar">
             <div class="admin-sidebar-header">
                 <h4>
-                    <i class="bi bi-person-workspace"></i> Admin Panel
+                    <i class="bi bi-speedometer2"></i>
                 </h4>
             </div>
             <nav class="nav flex-column">
@@ -77,12 +78,7 @@ try {
 
         <!-- Main Content -->
         <div class="admin-main-content">
-            <div class="admin-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2>Admin Dashboard</h2>
-                    <span class="text-muted">Welcome, Administrator</span>
-                </div>
-            </div>
+            
             <div class="admin-content">
                 <!-- Stats Cards -->
                 <div class="row mb-4">

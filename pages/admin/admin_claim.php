@@ -72,12 +72,13 @@ try {
     <link rel="stylesheet" href="../../assets/admin-style.css">
 </head>
 <body>
+    <?php include('includes/header.php'); ?>
     <div class="admin-container">
         <!-- Sidebar -->
         <div class="admin-sidebar">
             <div class="admin-sidebar-header">
                 <h4>
-                    <i class="bi bi-person-workspace"></i> Admin Panel
+                    <i class="bi bi-clipboard-check"></i>
                 </h4>
             </div>
             <nav class="nav flex-column">
@@ -101,14 +102,6 @@ try {
 
         <!-- Main Content -->
         <div class="admin-main-content">
-            <div class="admin-header">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="admin_dashboard.php">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Manage Claims</li>
-                    </ol>
-                </nav>
-            </div>
             <div class="admin-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2>Manage Claims</h2>
