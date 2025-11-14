@@ -13,15 +13,10 @@ echo
                     <span>Dashboard</span>
                 </a>
                 <div class="dropdown">
-                    <div class="admin-profile dropdown-toggle" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false" role="button" tabindex="0">
+                    <div class="admin-profile" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false" role="button" tabindex="0">
                         <i class="bi bi-person-fill"></i>
                     </div>
                     <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="profileDropdown">
-                        <li class="dropdown-header">
-                            <i class="bi bi-shield-check"></i>
-                            <div class="fw-bold">Administrator</div>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="admin_users.php"><i class="bi bi-people-fill"></i>Manage Users</a></li>
                         <li><a class="dropdown-item" href="admin_staff.php"><i class="bi bi-person-workspace"></i>Manage Staff</a></li>
                         <li><a class="dropdown-item" href="admin_claim.php"><i class="bi bi-clipboard-check"></i>Claims</a></li>
