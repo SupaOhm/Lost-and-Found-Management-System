@@ -29,8 +29,10 @@ if (isset($_POST['add_staff'])) {
         if ($stmt->fetch()) {
             $error = "Username already exists!";
         } else {
+            // Hash the password before storing
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("INSERT INTO staff (username, password, email, full_name, phone) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$username, $password, $email, $full_name, $phone]);
+            $stmt->execute([$username, $hashedPassword, $email, $full_name, $phone]);
             $success = "Staff account created successfully!";
         }
     } catch (Exception $e) {
