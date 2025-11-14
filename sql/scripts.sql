@@ -495,4 +495,20 @@ BEGIN
     SELECT admin_id, username, email, created_at FROM Admin WHERE admin_id = p_admin_id LIMIT 1;
 END$$
 
+-- =============================================
+-- STAFF MANAGEMENT PROCEDURES
+-- =============================================
+
+-- Stored procedure to verify staff login
+CREATE PROCEDURE VerifyStaffLogin(IN p_username VARCHAR(50))
+BEGIN
+    SELECT staff_id, username, password FROM Staff WHERE username = p_username LIMIT 1;
+END$$
+
+-- Stored procedure to get staff by ID
+CREATE PROCEDURE GetStaffById(IN p_staff_id INT)
+BEGIN
+    SELECT staff_id, username, email, full_name, phone, created_at FROM Staff WHERE staff_id = p_staff_id LIMIT 1;
+END$$
+
 delimiter ;

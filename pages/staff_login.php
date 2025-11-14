@@ -16,18 +16,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
     
     try {
-        // Call the stored procedure to verify staff login
-        $stmt = $pdo->prepare("CALL VerifyStaffLogin(?)");
-        $stmt->execute([$username]);
-        $staff = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stmt->closeCursor();
-        
-        if ($staff && password_verify($password, $staff['password'])) {
-            // Get complete staff data using the stored procedure
-            $stmt = $pdo->prepare("CALL GetStaffById(?)");
-            $stmt->execute([$staff['staff_id']]);
-            $staffData = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Try to use stored procedure, fallback to direct query if it doesn't exist
+        try {
+            $stmt = $pdo->prepare("CALL VerifyStaffLogin(?)");
+            $stmt->execute([$username]);
+            $staff = $stmt->fetch(PDO::FETCH_ASSOC);
             $stmt->closeCursor();
+        } catch (PDOException $e) {
+            // Fallback to direct query if stored procedure doesn't exist
+            $stmt = $pdo->prepare("SELECT staff_id, username, password FROM Staff WHERE username = ? LIMIT 1");
+            $stmt->execute([$username]);
+            $staff = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        if (!$staff) {
+            $error = 'Username not found. Please check your credentials.';
+        } elseif (!password_verify($password, $staff['password'])) {
+            $error = 'Invalid password. Please try again.';
+        } else {
+            // Get complete staff data
+            try {
+                $stmt = $pdo->prepare("CALL GetStaffById(?)");
+                $stmt->execute([$staff['staff_id']]);
+                $staffData = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
+            } catch (PDOException $e) {
+                // Fallback to direct query
+                $stmt = $pdo->prepare("SELECT staff_id, username, email, full_name, phone, created_at FROM Staff WHERE staff_id = ? LIMIT 1");
+                $stmt->execute([$staff['staff_id']]);
+                $staffData = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
             
             if ($staffData) {
                 $_SESSION['staff_id'] = $staffData['staff_id'];
@@ -38,12 +56,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['email'] = $staffData['email'];
                 }
                 
+                if (isset($staffData['full_name'])) {
+                    $_SESSION['full_name'] = $staffData['full_name'];
+                }
+                
                 header('Location: staff/staff_dashboard.php');
                 exit();
+            } else {
+                $error = 'Error retrieving staff data. Please contact administrator.';
             }
         }
-        
-        $error = 'Invalid username or password';
     } catch (PDOException $e) {
         $error = 'Database error: ' . $e->getMessage();
     }
@@ -108,6 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <a href="login.php" class="back-to-home">
                     <i class="bi bi-arrow-left"></i> Back to User Login
                 </a>
+            </div>
+            
+            <div class="text-center mt-2">
+                <small class="text-muted">
+                    Need a staff account? <a href="create_staff.php">Create one here</a>
+                </small>
             </div>
         </div>
     </div>
