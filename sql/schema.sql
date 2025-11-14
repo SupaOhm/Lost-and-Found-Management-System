@@ -4,7 +4,7 @@ USE lost_found_db;
 
 -- USER TABLE
 CREATE TABLE User (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100) NOT NULL,
@@ -14,8 +14,8 @@ CREATE TABLE User (
 
 -- LOST ITEM TABLE
 CREATE TABLE LostItem (
-    lost_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    lost_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
     item_name VARCHAR(100) NOT NULL,
     description TEXT,
     category VARCHAR(50),
@@ -28,7 +28,7 @@ CREATE TABLE LostItem (
 
 -- ADMIN TABLE
 CREATE TABLE Admin (
-    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100),
@@ -37,7 +37,7 @@ CREATE TABLE Admin (
 
 -- STAFF TABLE
 CREATE TABLE Staff (
-    staff_id INT AUTO_INCREMENT PRIMARY KEY,
+    staff_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100),
@@ -50,8 +50,8 @@ insert into `Admin`(`username`, `password`, `email`) values('admin', 'admin', 'a
 
 -- FOUND ITEM TABLE
 CREATE TABLE FoundItem (
-    found_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    found_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
     item_name VARCHAR(100) NOT NULL,
     description TEXT,
     category VARCHAR(50),
@@ -64,16 +64,15 @@ CREATE TABLE FoundItem (
 
 -- CLAIM REQUEST TABLE
 CREATE TABLE ClaimRequest (
-    claim_id INT AUTO_INCREMENT PRIMARY KEY,
-    lost_id INT,
-    found_id INT,
-    user_id INT,
+    claim_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    lost_id BIGINT,
+    description VARCHAR(500),
+    user_id BIGINT,
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     claim_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    approved_by INT NULL,
+    approved_by BIGINT NULL,
     approved_date DATETIME NULL,
     FOREIGN KEY (lost_id) REFERENCES LostItem(lost_id),
-    FOREIGN KEY (found_id) REFERENCES FoundItem(found_id),
     FOREIGN KEY (user_id) REFERENCES User(user_id),
     FOREIGN KEY (approved_by) REFERENCES Admin(admin_id)
 );

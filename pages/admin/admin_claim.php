@@ -42,9 +42,9 @@ try {
     // Close cursor to free connection for further calls
     $stmt->closeCursor();
 
-    // If the procedure returned no rows (old proc used inner JOINs), fall back to a LEFT JOIN select
+    // If the procedure returned no rows, fall back to a LEFT JOIN select with claim description
     if (empty($pending_claims)) {
-        $fallbackSql = "SELECT c.claim_id, u.username AS requester, l.item_name AS lost_item, f.item_name AS found_item, c.status, c.claim_date
+        $fallbackSql = "SELECT c.claim_id, u.username AS requester, c.description AS claim_description, l.item_name AS lost_item, f.item_name AS found_item, c.status, c.claim_date
                         FROM ClaimRequest c
                         LEFT JOIN User u ON c.user_id = u.user_id
                         LEFT JOIN LostItem l ON c.lost_id = l.lost_id
@@ -141,8 +141,7 @@ try {
                                         <tr>
                                             <th>Claim ID</th>
                                             <th>Claimant</th>
-                                            <th>Lost Item</th>
-                                            <th>Found Item</th>
+                                            <th>Claim Details</th>
                                             <th>Date Claimed</th>
                                             <th>Actions</th>
                                         </tr>
@@ -152,8 +151,15 @@ try {
                                             <tr>
                                                 <td>#<?php echo $claim['claim_id']; ?></td>
                                                 <td><?php echo htmlspecialchars($claim['requester']); ?></td>
-                                                <td><?php echo htmlspecialchars($claim['lost_item']); ?></td>
-                                                <td><?php echo htmlspecialchars($claim['found_item']); ?></td>
+                                                <td>
+                                                    <?php 
+                                                    if (!empty($claim['claim_description'])) {
+                                                        echo '<span class="text-muted">' . htmlspecialchars($claim['claim_description']) . '</span>';
+                                                    } else {
+                                                        echo '<span class="text-muted">No details provided.</span>';
+                                                    }
+                                                    ?>
+                                                </td>
                                                 <td><?php echo date('M j, Y', strtotime($claim['claim_date'])); ?></td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm" role="group">
