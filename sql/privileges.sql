@@ -17,3 +17,8 @@ GRANT INSERT, DELETE ON lost_found_db.FoundItem TO user_user;
 GRANT INSERT, DELETE ON lost_found_db.ClaimRequest TO user_user;
 GRANT UPDATE ON lost_found_db.User TO user_user;
 FLUSH PRIVILEGES;
+
+GRANT EXECUTE ON lost_found_db.* TO user_user;
+GRANT EXECUTE ON lost_found_db.* TO staff_user;
+GRANT EXECUTE ON lost_found_db.* TO admin_user;
+FLUSH PRIVILEGES;

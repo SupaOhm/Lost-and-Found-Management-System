@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../../config/db.php';
+require_once '../../config/adminconfig.php';
 
 // get admin id from session if available
 $adminId = isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : null;

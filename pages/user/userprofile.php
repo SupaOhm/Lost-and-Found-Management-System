@@ -1,6 +1,6 @@
 <?php
 // Include database connection and functions
-require_once('../../config/db.php');
+require_once('../../config/userconfig.php');
 require_once('../../includes/functions.php');
 
 // Start session and check if user is logged in

@@ -6,7 +6,7 @@ delimiter $$
 
 -- Get User by ID
 CREATE PROCEDURE GetUserById(
-    IN p_user_id INT
+    IN p_user_id BIGINT
 )
 BEGIN
     SELECT user_id, username, email, phone, created_at
@@ -18,11 +18,11 @@ END$$
 CREATE PROCEDURE RegisterUser(
     IN p_username VARCHAR(50),
     IN p_email VARCHAR(100),
-    IN p_password VARCHAR(255),
-    IN p_phone VARCHAR(20)
+    IN p_password VARBINARY(255),
+    IN p_phone VARBINARY(255)
 )
 BEGIN
-    DECLARE user_id INT;
+    DECLARE user_id BIGINT;
     
     INSERT INTO User (username, email, password, phone)
     VALUES (p_username, p_email, p_password, p_phone);
@@ -52,10 +52,10 @@ END$$
 
 -- Update User Profile
 CREATE PROCEDURE UpdateUserProfile(
-    IN p_user_id INT,
+    IN p_user_id BIGINT,
     IN p_username VARCHAR(50),
     IN p_email VARCHAR(100),
-    IN p_phone VARCHAR(20)
+    IN p_phone VARBINARY(255)
 )
 BEGIN
     UPDATE User 
@@ -71,7 +71,7 @@ END$$
 
 -- Report Lost Item
 CREATE PROCEDURE ReportLostItem(
-    IN p_user_id INT,
+    IN p_user_id BIGINT,
     IN p_item_name VARCHAR(100),
     IN p_description TEXT,
     IN p_category VARCHAR(50),
@@ -85,7 +85,7 @@ END$$
 
 -- Report Found Item
 CREATE PROCEDURE ReportFoundItem(
-    IN p_user_id INT,
+    IN p_user_id BIGINT,
     IN p_item_name VARCHAR(100),
     IN p_description TEXT,
     IN p_category VARCHAR(50),
@@ -99,7 +99,7 @@ END$$
 
 -- Get User's Lost Items Count
 CREATE PROCEDURE GetUserLostItemsCount(
-    IN p_user_id INT
+    IN p_user_id BIGINT
 )
 BEGIN
     SELECT COUNT(*) as total FROM LostItem WHERE user_id = p_user_id;
@@ -107,7 +107,7 @@ END$$
 
 -- Get User's Found Items Count
 CREATE PROCEDURE GetUserFoundItemsCount(
-    IN p_user_id INT
+    IN p_user_id BIGINT
 )
 BEGIN
     SELECT COUNT(*) as total FROM FoundItem WHERE user_id = p_user_id;
@@ -115,7 +115,7 @@ END$$
 
 -- Get User's Lost Items
 CREATE PROCEDURE GetUserLostItems(
-    IN p_user_id INT
+    IN p_user_id BIGINT
 )
 BEGIN
     SELECT lost_id AS item_id, item_name, description, category, location, status, lost_date, created_at
@@ -126,7 +126,7 @@ END$$
 
 -- Get User's Found Items
 CREATE PROCEDURE GetUserFoundItems(
-    IN p_user_id INT
+    IN p_user_id BIGINT
 )
 BEGIN
     SELECT found_id AS item_id, item_name, description, category, location, status, found_date, created_at
@@ -157,8 +157,8 @@ END$$
 
 -- Approve Claim (Admin)
 CREATE PROCEDURE ApproveClaim(
-    IN p_claim_id INT,
-    IN p_admin_id INT
+    IN p_claim_id BIGINT,
+    IN p_admin_id BIGINT
 )
 BEGIN
     UPDATE ClaimRequest
@@ -170,8 +170,8 @@ END$$
 
 -- Reject Claim (Admin)
 CREATE PROCEDURE RejectClaim(
-    IN p_claim_id INT,
-    IN p_admin_id INT
+    IN p_claim_id BIGINT,
+    IN p_admin_id BIGINT
 )
 BEGIN
     UPDATE ClaimRequest
@@ -322,7 +322,7 @@ END$$
 
 -- Get count of claims made by a user
 CREATE PROCEDURE GetUserClaimsCount(
-    IN p_user_id INT
+    IN p_user_id BIGINT
 )
 BEGIN
     SELECT COUNT(*) as total 
@@ -355,7 +355,7 @@ END$$
 
 -- Get claims by user
 CREATE PROCEDURE GetUserClaims(
-    IN p_user_id INT
+    IN p_user_id BIGINT
 )
 BEGIN
     SELECT 
@@ -381,7 +381,7 @@ BEGIN
 END$$
 
 -- Stored procedure to get admin by ID
-CREATE PROCEDURE GetAdminById(IN p_admin_id INT)
+CREATE PROCEDURE GetAdminById(IN p_admin_id BIGINT)
 BEGIN
     SELECT admin_id, username, email, created_at FROM Admin WHERE admin_id = p_admin_id LIMIT 1;
 END$$
@@ -397,7 +397,7 @@ BEGIN
 END$$
 
 -- Stored procedure to get staff by ID
-CREATE PROCEDURE GetStaffById(IN p_staff_id INT)
+CREATE PROCEDURE GetStaffById(IN p_staff_id BIGINT)
 BEGIN
     SELECT staff_id, username, email, full_name, phone, created_at FROM Staff WHERE staff_id = p_staff_id LIMIT 1;
 END$$

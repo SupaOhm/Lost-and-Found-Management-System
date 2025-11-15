@@ -7,7 +7,7 @@ if (!isset($_SESSION['staff_id'])) {
     exit();
 }
 
-require_once('../../config/db.php');
+require_once('../../config/staffconfig.php');
 
 // Get staff stats
 try {

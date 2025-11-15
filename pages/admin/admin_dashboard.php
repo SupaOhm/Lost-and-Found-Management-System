@@ -7,7 +7,7 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['is_admin']) || $_SESSION[
     exit();
 }
 
-require_once('../../config/db.php');
+require_once('../../config/adminconfig.php');
 
 // Get admin stats
 try {

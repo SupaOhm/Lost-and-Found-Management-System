@@ -1,5 +1,5 @@
 <?php
-require_once '../../config/db.php';
+require_once '../../config/adminconfig.php';
 
 // Handle delete staff
 if (isset($_GET['delete_staff'])) {

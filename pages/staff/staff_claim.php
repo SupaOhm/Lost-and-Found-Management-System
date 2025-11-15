@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../../config/db.php';
+require_once '../../config/staffconfig.php';
 
 // get staff id from session if available
 $staffId = isset($_SESSION['staff_id']) ? (int)$_SESSION['staff_id'] : null;
