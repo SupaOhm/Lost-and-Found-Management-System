@@ -54,6 +54,55 @@ try {
     // Log error but don't break the page
     error_log("Dashboard stats error: " . $e->getMessage());
 }
+
+// Check for potential matches
+$match_count = 0;
+$potential_matches = [];
+try {
+    // Get match count
+    $stmt = $pdo->prepare("CALL GetUserMatchCount(?)");
+    $stmt->execute([$_SESSION['user_id']]);
+    $result = $stmt->fetch();
+    if ($result) {
+        $match_count = $result['match_count'];
+    }
+    $stmt->closeCursor();
+    
+    // Get potential matches if any exist
+    if ($match_count > 0) {
+        $stmt = $pdo->prepare("CALL FindPotentialMatches(?)");
+        $stmt->execute([$_SESSION['user_id']]);
+        $potential_matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+    }
+} catch (PDOException $e) {
+    // Log error but don't break the page
+    error_log("Match detection error: " . $e->getMessage());
+}
+
+// Check for recent claim status updates (approved/rejected in last 7 days)
+$claim_notifications = [];
+$claim_notification_count = 0;
+try {
+    $stmt = $pdo->prepare("
+        SELECT c.claim_id, c.status, c.approved_date, f.item_name, f.category
+        FROM ClaimRequest c
+        JOIN FoundItem f ON c.found_id = f.found_id
+        WHERE c.user_id = ? 
+        AND c.status IN ('approved', 'rejected')
+        AND c.approved_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        ORDER BY c.approved_date DESC
+        LIMIT 5
+    ");
+    $stmt->execute([$_SESSION['user_id']]);
+    $claim_notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $claim_notification_count = count($claim_notifications);
+} catch (PDOException $e) {
+    error_log("Claim notification error: " . $e->getMessage());
+}
+
+// Calculate total notification count
+$total_notification_count = $match_count + $claim_notification_count;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -77,6 +126,54 @@ try {
                     Lost&Found
                 </a>
                 <div class="d-flex align-items-center gap-3">
+                    <?php if ($total_notification_count > 0): ?>
+                    <!-- Notification Bell -->
+                    <div class="dropdown">
+                        <button class="notification-bell-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-bell"></i>
+                            <span class="notification-badge"><?php echo $total_notification_count; ?></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
+                            <li class="dropdown-header">
+                                <i class="bi bi-bell me-2"></i>
+                                <strong>Notifications</strong>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            
+                            <?php if ($match_count > 0): ?>
+                            <li>
+                                <a class="dropdown-item notification-item" href="match_results.php">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <div class="notification-icon-small match-type">
+                                            <i class="bi bi-stars"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="notification-item-title">Potential Matches Found</div>
+                                            <div class="notification-item-text"><?php echo $match_count; ?> item<?php echo $match_count > 1 ? 's' : ''; ?> may match your reports</div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            
+                            <?php foreach ($claim_notifications as $claim_notif): ?>
+                            <li>
+                                <a class="dropdown-item notification-item" href="claim.php">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <div class="notification-icon-small <?php echo $claim_notif['status'] === 'approved' ? 'claim-type' : 'alert-type'; ?>">
+                                            <i class="bi bi-<?php echo $claim_notif['status'] === 'approved' ? 'check-circle' : 'x-circle'; ?>"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="notification-item-title">Claim <?php echo ucfirst($claim_notif['status']); ?></div>
+                                            <div class="notification-item-text">Your claim for "<?php echo htmlspecialchars($claim_notif['item_name']); ?>" was <?php echo $claim_notif['status']; ?></div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
                     <div class="dropdown">
                         <button class="btn btn-link text-decoration-none p-0 border-0 bg-transparent dropdown-toggle d-flex align-items-center" 
                                 type="button" 
@@ -231,15 +328,6 @@ try {
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
-        
-        // Auto-hide alerts after 5 seconds
-        window.setTimeout(function() {
-            var alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                var bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
-        }, 5000);
         
         // Set username in the header
         document.addEventListener('DOMContentLoaded', function() {
