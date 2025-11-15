@@ -61,16 +61,10 @@ try {
             if ($claimDescription === '') {
                 $error = 'Please provide a description of why you believe this is your item.';
             } else {
-                // Insert claim into ClaimRequest with description
+                // Submit claim using stored procedure
                 try {
-                    if ($itemType === 'lost') {
-                        $stmt = $pdo->prepare("INSERT INTO ClaimRequest (lost_id, user_id, description, status, claim_date) VALUES (?, ?, ?, 'pending', NOW())");
-                        $stmt->execute([$itemId, $_SESSION['user_id'], $claimDescription]);
-                    } else {
-                        $stmt = $pdo->prepare("INSERT INTO ClaimRequest (found_id, user_id, description, status, claim_date) VALUES (?, ?, ?, 'pending', NOW())");
-                        $stmt->execute([$itemId, $_SESSION['user_id'], $claimDescription]);
-                    }
-
+                    $stmt = $pdo->prepare("CALL SubmitClaim(?, ?, ?)");
+                    $stmt->execute([$itemId, $_SESSION['user_id'], $claimDescription]);
                     $success = 'Your claim has been submitted successfully! The item owner will review your claim and contact you if it matches their records.';
                     $userCanClaim = false; // Disable claim button after submission
                 } catch (PDOException $e) {

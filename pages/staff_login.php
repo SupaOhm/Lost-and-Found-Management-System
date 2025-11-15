@@ -16,18 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
     
     try {
-        // Try to use stored procedure, fallback to direct query if it doesn't exist
-        try {
-            $stmt = $pdo->prepare("CALL VerifyStaffLogin(?)");
-            $stmt->execute([$username]);
-            $staff = $stmt->fetch(PDO::FETCH_ASSOC);
-            $stmt->closeCursor();
-        } catch (PDOException $e) {
-            // Fallback to direct query if stored procedure doesn't exist
-            $stmt = $pdo->prepare("SELECT staff_id, username, password FROM Staff WHERE username = ? LIMIT 1");
-            $stmt->execute([$username]);
-            $staff = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
+        $stmt = $pdo->prepare("CALL VerifyStaffLogin(?)");
+        $stmt->execute([$username]);
+        $staff = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
         
         if (!$staff) {
             $error = 'Username not found. Please check your credentials.';
@@ -35,17 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Invalid password. Please try again.';
         } else {
             // Get complete staff data
-            try {
-                $stmt = $pdo->prepare("CALL GetStaffById(?)");
-                $stmt->execute([$staff['staff_id']]);
-                $staffData = $stmt->fetch(PDO::FETCH_ASSOC);
-                $stmt->closeCursor();
-            } catch (PDOException $e) {
-                // Fallback to direct query
-                $stmt = $pdo->prepare("SELECT staff_id, username, email, full_name, phone, created_at FROM Staff WHERE staff_id = ? LIMIT 1");
-                $stmt->execute([$staff['staff_id']]);
-                $staffData = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
+            $stmt = $pdo->prepare("CALL GetStaffById(?)");
+            $stmt->execute([$staff['staff_id']]);
+            $staffData = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
             
             if ($staffData) {
                 $_SESSION['staff_id'] = $staffData['staff_id'];
@@ -130,12 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <a href="login.php" class="back-to-home">
                     <i class="bi bi-arrow-left"></i> Back to User Login
                 </a>
-            </div>
-            
-            <div class="text-center mt-2">
-                <small class="text-muted">
-                    Need a staff account? <a href="create_staff.php">Create one here</a>
-                </small>
             </div>
         </div>
     </div>

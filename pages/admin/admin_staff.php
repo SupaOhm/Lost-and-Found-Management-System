@@ -186,16 +186,16 @@ if (isset($_GET['view_staff'])) {
                                 </div>
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label class="form-label">Full Name</label>
-                                        <input type="text" name="full_name" class="form-control">
+                                        <label class="form-label">Full Name *</label>
+                                        <input type="text" name="full_name" class="form-control" required>
                                     </div>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label class="form-label">Phone</label>
-                                        <input type="text" name="phone" class="form-control">
+                                        <label class="form-label">Phone *</label>
+                                        <input type="text" name="phone" class="form-control" required>
                                     </div>
                                 </div>
                             </div>

@@ -78,69 +78,77 @@ try {
     $limit = (int)$claimsPerPage;
     $offset = (int)$claimsOffset;
     
-    // Build WHERE clause with status filter
-    $whereClause = "c.user_id = :uid";
-    if ($claimStatusFilter !== 'all') {
-        $whereClause .= " AND c.status = :status";
-    }
-    
-    $sql = "SELECT c.*, c.claim_date AS created_at,
-                'found' AS item_type,
-                f.item_name AS item_name,
-                f.found_id AS item_id,
-                NULL AS item_image,
-                u_owner.username AS owner_name,
-                u_owner.email AS owner_email
-         FROM ClaimRequest c
-         LEFT JOIN FoundItem f ON c.found_id = f.found_id
-         LEFT JOIN User u_owner ON u_owner.user_id = f.user_id
-         WHERE $whereClause
-         ORDER BY c.claim_date DESC
-         LIMIT $limit OFFSET $offset";
-
+    // Use stored procedure to get user claims
     try {
-        $claimsStmt = $pdo->prepare($sql);
-        $params = [':uid' => $userId];
+        $stmt = $pdo->prepare("CALL GetUserClaims(?)");
+        $stmt->execute([$userId]);
+        $allClaims = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        
+        // Apply status filter if specified
         if ($claimStatusFilter !== 'all') {
-            $params[':status'] = $claimStatusFilter;
+            $allClaims = array_filter($allClaims, function($claim) use ($claimStatusFilter) {
+                return $claim['status'] === $claimStatusFilter;
+            });
+            $allClaims = array_values($allClaims); // Re-index array
         }
-        $claimsStmt->execute($params);
-        $claims = $claimsStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Get total count after filtering
+        $totalClaims = count($allClaims);
+        $totalClaimsPages = ceil($totalClaims / $claimsPerPage);
+        
+        // Apply pagination
+        $claims = array_slice($allClaims, $offset, $limit);
+        // Final normalization: ensure every claim has 'item_type' and 'created_at' set
+        foreach ($claims as &$claim) {
+            if (!isset($claim['item_type']) || $claim['item_type'] === null) {
+                $claim['item_type'] = '';
+            }
+            if (!isset($claim['created_at']) || $claim['created_at'] === null) {
+                $claim['created_at'] = '';
+            }
+        }
+        unset($claim);
     } catch (PDOException $e) {
         error_log('Claims Query Error: ' . $e->getMessage());
         $claims = [];
+        $totalClaims = 0;
+        $totalClaimsPages = 0;
     }
-
-    // Get total claims count for pagination (with filter)
-    $countWhere = "user_id = ?";
-    $countParams = [$userId];
-    if ($claimStatusFilter !== 'all') {
-        $countWhere .= " AND status = ?";
-        $countParams[] = $claimStatusFilter;
-    }
-    $totalClaimsStmt = $pdo->prepare("SELECT COUNT(*) FROM ClaimRequest WHERE $countWhere");
-    $totalClaimsStmt->execute($countParams);
-    $totalClaims = $totalClaimsStmt->fetchColumn();
-    $totalClaimsPages = ceil($totalClaims / $claimsPerPage);
     
     // Get user's reported items with pagination (fetch both lists, then filter in PHP)
     $reportsOffset = ($reportsPage - 1) * $reportsPerPage;
 
-    // Get lost items reported by user
-    $lostItemsStmt = $pdo->prepare(
-        "SELECT 'lost' AS item_type, lost_id AS item_id, item_name, description, NULL AS image_path, status, created_at
-         FROM LostItem
-         WHERE user_id = ?");
+    // Get lost items reported by user using stored procedure
+    $lostItemsStmt = $pdo->prepare("CALL GetUserLostItems(?)");
     $lostItemsStmt->execute([$userId]);
     $lostItems = $lostItemsStmt->fetchAll(PDO::FETCH_ASSOC);
+    $lostItemsStmt->closeCursor();
+    
+    // Add item_type to each lost item
+    foreach ($lostItems as &$item) {
+        $item['item_type'] = 'lost';
+        $item['image_path'] = null;
+        if (!isset($item['created_at']) || !$item['created_at']) {
+            $item['created_at'] = '';
+        }
+    }
+    unset($item);
 
-    // Get found items reported by user
-    $foundItemsStmt = $pdo->prepare(
-        "SELECT 'found' AS item_type, found_id AS item_id, item_name, description, NULL AS image_path, status, created_at
-         FROM FoundItem
-         WHERE user_id = ?");
+    // Get found items reported by user using stored procedure
+    $foundItemsStmt = $pdo->prepare("CALL GetUserFoundItems(?)");
     $foundItemsStmt->execute([$userId]);
     $foundItems = $foundItemsStmt->fetchAll(PDO::FETCH_ASSOC);
+    $foundItemsStmt->closeCursor();
+    
+    foreach ($foundItems as &$item) {
+        $item['item_type'] = 'found';
+        $item['image_path'] = null;
+        if (!isset($item['created_at']) || !$item['created_at']) {
+            $item['created_at'] = '';
+        }
+    }
+    unset($item);
 
     // Combine lost and found items
     $reportedItems = array_merge($lostItems, $foundItems);
@@ -165,14 +173,29 @@ try {
     $totalReportedItems = count($reportedItems);
     $reportedItems = array_slice($reportedItems, $reportsOffset, $reportsPerPage);
     $totalReportsPages = ceil($totalReportedItems / $reportsPerPage);
+
+        // Final normalization: ensure every item has 'item_type' and 'created_at' set
+        foreach ($reportedItems as &$item) {
+            if (!isset($item['item_type']) || $item['item_type'] === null) {
+                $item['item_type'] = '';
+            }
+            if (!isset($item['created_at']) || $item['created_at'] === null) {
+                $item['created_at'] = '';
+            }
+        }
+        unset($item);
     
     // user lost/found counts for the profile-stats cards (keep counts unaffected by filters)
-    $totalLostStmt = $pdo->prepare("SELECT COUNT(*) FROM LostItem WHERE user_id = ?");
-    $totalFoundStmt = $pdo->prepare("SELECT COUNT(*) FROM FoundItem WHERE user_id = ?");
+    // Use stored procedures for counts
+    $totalLostStmt = $pdo->prepare("CALL GetUserLostItemsCount(?)");
     $totalLostStmt->execute([$userId]);
     $userLostCount = (int)$totalLostStmt->fetchColumn();
+    $totalLostStmt->closeCursor();
+    
+    $totalFoundStmt = $pdo->prepare("CALL GetUserFoundItemsCount(?)");
     $totalFoundStmt->execute([$userId]);
     $userFoundCount = (int)$totalFoundStmt->fetchColumn();
+    $totalFoundStmt->closeCursor();
     
 } catch (PDOException $e) {
     error_log('Database Error: ' . $e->getMessage());
@@ -645,7 +668,7 @@ if ($showDebugClaims) {
                                         <h5 class="item-title"><?php echo htmlspecialchars($claim['item_name']); ?></h5>
                                         <div class="item-meta">
                                             <div><i class="bi bi-tag-fill me-1"></i> <?php echo ucfirst($claim['item_type']); ?> Item</div>
-                                            <div><i class="bi bi-calendar3 me-1"></i> <?php echo date('M j, Y', strtotime($claim['created_at'])); ?></div>
+                                            <div><i class="bi bi-calendar3 me-1"></i> <?php echo date('M j, Y', strtotime($claim['claim_date'] ?? '')); ?></div>
                                             <?php if (!empty($claim['owner_name'])): ?>
                                                 <div><i class="bi bi-person-fill me-1"></i> Finder: <?php echo htmlspecialchars($claim['owner_name']); ?></div>
                                             <?php endif; ?>

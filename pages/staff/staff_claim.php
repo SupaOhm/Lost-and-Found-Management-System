@@ -10,10 +10,24 @@ if (isset($_POST['approve_claim'])) {
     $claim_id = isset($_POST['claim_id']) ? (int)$_POST['claim_id'] : 0;
     
     try {
+        // Approve the claim
         $stmt = $pdo->prepare("CALL ApproveClaim(?, ?)");
         $stmt->execute([$claim_id, $staffId]);
-        // Close cursor to allow next calls
         $stmt->closeCursor();
+
+        // Get found_id for this claim
+        $foundIdStmt = $pdo->prepare("SELECT found_id FROM ClaimRequest WHERE claim_id = ?");
+        $foundIdStmt->execute([$claim_id]);
+        $foundId = $foundIdStmt->fetchColumn();
+        $foundIdStmt->closeCursor();
+
+        // Reject all other pending claims for the same found item
+        if ($foundId) {
+            $rejectStmt = $pdo->prepare("UPDATE ClaimRequest SET status = 'rejected', approved_by = ?, approved_date = NOW() WHERE found_id = ? AND claim_id != ? AND status = 'pending'");
+            $rejectStmt->execute([$staffId, $foundId, $claim_id]);
+            $rejectStmt->closeCursor();
+        }
+
         $success = "Claim approved successfully!";
     } catch (Exception $e) {
         $error = "Error approving claim: " . $e->getMessage();
@@ -41,19 +55,6 @@ try {
     $pending_claims = $stmt->fetchAll();
     // Close cursor to free connection for further calls
     $stmt->closeCursor();
-
-    // If the procedure returned no rows, fall back to a LEFT JOIN select with claim description
-    if (empty($pending_claims)) {
-        $fallbackSql = "SELECT c.claim_id, u.username AS requester, c.description AS claim_description, l.item_name AS lost_item, f.item_name AS found_item, c.status, c.claim_date
-                        FROM ClaimRequest c
-                        LEFT JOIN User u ON c.user_id = u.user_id
-                        LEFT JOIN LostItem l ON c.lost_id = l.lost_id
-                        LEFT JOIN FoundItem f ON c.found_id = f.found_id
-                        WHERE c.status = 'pending'
-                        ORDER BY c.claim_date DESC";
-        $stmt = $pdo->query($fallbackSql);
-        $pending_claims = $stmt->fetchAll();
-    }
 } catch (PDOException $e) {
     $pending_claims = [];
     $error = "Database error: " . $e->getMessage();

@@ -5,6 +5,96 @@ delimiter $$
 -- =============================================
 
 -- Get User by ID
+CREATE PROCEDURE GetUserById(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT user_id, username, email, phone, created_at
+    FROM User 
+    WHERE user_id = p_user_id;
+END$$
+
+-- Register New User
+CREATE PROCEDURE RegisterUser(
+    IN p_username VARCHAR(50),
+    IN p_email VARCHAR(100),
+    IN p_password VARCHAR(255),
+    IN p_phone VARCHAR(20)
+)
+BEGIN
+    DECLARE user_id INT;
+    
+    INSERT INTO User (username, email, password, phone)
+    VALUES (p_username, p_email, p_password, p_phone);
+    
+    SET user_id = LAST_INSERT_ID();
+    SELECT user_id;
+END$$
+
+-- User Login
+CREATE PROCEDURE LoginUser(
+    IN p_username VARCHAR(50),
+    IN p_password VARCHAR(255)
+)
+BEGIN
+    SELECT user_id, username, email
+    FROM User
+    WHERE username = p_username AND password = p_password;
+END$$
+
+-- Check if email exists
+CREATE PROCEDURE CheckEmailExists(
+    IN p_email VARCHAR(100)
+)
+BEGIN
+    SELECT user_id FROM User WHERE email = p_email;
+END$$
+
+-- Get User by Email
+CREATE PROCEDURE GetUserByEmail(
+    IN p_email VARCHAR(100)
+)
+BEGIN
+    SELECT user_id, username, email, password, phone, created_at
+    FROM User 
+    WHERE email = p_email
+    LIMIT 1;
+END$$
+
+-- Update User Profile
+CREATE PROCEDURE UpdateUserProfile(
+    IN p_user_id INT,
+    IN p_username VARCHAR(50),
+    IN p_email VARCHAR(100),
+    IN p_phone VARCHAR(20)
+)
+BEGIN
+    UPDATE User 
+    SET username = p_username,
+        email = p_email,
+        phone = p_phone
+    WHERE user_id = p_user_id;
+END$$
+
+-- =============================================
+-- LOST & FOUND ITEMS PROCEDURES
+-- =============================================
+
+-- Report Lost Item
+CREATE PROCEDURE ReportLostItem(
+    IN p_user_id INT,
+    IN p_item_name VARCHAR(100),
+    IN p_description TEXT,
+    IN p_category VARCHAR(50),
+    IN p_location VARCHAR(100),
+    IN p_lost_date DATE
+)
+BEGIN
+    INSERT INTO LostItem (user_id, item_name, description, category, location, lost_date)
+    VALUES (p_user_id, p_item_name, p_description, p_category, p_location, p_lost_date);
+END$$
+
+-- Report Found Item
 CREATE PROCEDURE ReportFoundItem(
     IN p_user_id INT,
     IN p_item_name VARCHAR(100),

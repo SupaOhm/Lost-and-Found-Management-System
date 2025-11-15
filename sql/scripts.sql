@@ -31,17 +31,6 @@ BEGIN
     SELECT user_id;
 END$$
 
--- User Login
-CREATE PROCEDURE LoginUser(
-    IN p_username VARCHAR(50),
-    IN p_password VARCHAR(255)
-)
-BEGIN
-    SELECT user_id, username, email
-    FROM User
-    WHERE username = p_username AND password = p_password;
-END$$
-
 -- Check if email exists
 CREATE PROCEDURE CheckEmailExists(
     IN p_email VARCHAR(100)
@@ -108,18 +97,6 @@ BEGIN
     VALUES (p_user_id, p_item_name, p_description, p_category, p_location, p_found_date);
 END$$
 
--- View Lost Items
-CREATE PROCEDURE ViewLostItems()
-BEGIN
-    SELECT * FROM LostItem ORDER BY created_at DESC;
-END$$
-
--- View Found Items
-CREATE PROCEDURE ViewFoundItems()
-BEGIN
-    SELECT * FROM FoundItem ORDER BY created_at DESC;
-END$$
-
 -- Get User's Lost Items Count
 CREATE PROCEDURE GetUserLostItemsCount(
     IN p_user_id INT
@@ -136,32 +113,31 @@ BEGIN
     SELECT COUNT(*) as total FROM FoundItem WHERE user_id = p_user_id;
 END$$
 
--- =============================================
--- CLAIM MANAGEMENT PROCEDURES
--- =============================================
-
-
-CREATE PROCEDURE SubmitClaimRequest(
-    IN p_found_id BIGINT,
-    IN p_user_id BIGINT,
-    IN p_description TEXT
-)
-BEGIN
-    INSERT INTO ClaimRequest (found_id, user_id, description)
-    VALUES (p_found_id, p_user_id, p_description);
-END$$
-
--- View Claim Requests by User
-CREATE PROCEDURE ViewUserClaims(
+-- Get User's Lost Items
+CREATE PROCEDURE GetUserLostItems(
     IN p_user_id INT
 )
 BEGIN
-    SELECT c.claim_id, c.description AS claim_description, f.item_name AS found_item, c.status, c.claim_date
-    FROM ClaimRequest c
-    LEFT JOIN FoundItem f ON c.found_id = f.found_id
-    WHERE c.user_id = p_user_id
-    ORDER BY c.claim_date DESC;
+    SELECT lost_id AS item_id, item_name, description, category, location, status, lost_date, created_at
+    FROM LostItem
+    WHERE user_id = p_user_id
+    ORDER BY created_at DESC;
 END$$
+
+-- Get User's Found Items
+CREATE PROCEDURE GetUserFoundItems(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT found_id AS item_id, item_name, description, category, location, status, found_date, created_at
+    FROM FoundItem
+    WHERE user_id = p_user_id
+    ORDER BY created_at DESC;
+END$$
+
+-- =============================================
+-- CLAIM MANAGEMENT PROCEDURES
+-- =============================================
 
 -- View Pending Claims (Admin)
 CREATE PROCEDURE ViewPendingClaims()
@@ -341,31 +317,6 @@ BEGIN
 END$$
 
 -- =============================================
--- ADMIN MANAGEMENT PROCEDURES
--- =============================================
-
--- Check if admin username exists
-CREATE PROCEDURE CheckAdminUsernameExists(
-    IN p_username VARCHAR(50)
-)
-BEGIN
-    SELECT admin_id FROM Admin WHERE username = p_username;
-END$$
-
--- Register new admin
-CREATE PROCEDURE RegisterAdmin(
-    IN p_username VARCHAR(50),
-    IN p_password VARCHAR(255),
-    IN p_email VARCHAR(100)
-)
-BEGIN
-    INSERT INTO Admin (username, password, email)
-    VALUES (p_username, p_password, p_email);
-    
-    SELECT LAST_INSERT_ID() as admin_id;
-END$$
-
--- =============================================
 -- USER-RELATED STORED PROCEDURES
 -- =============================================
 
@@ -378,37 +329,6 @@ BEGIN
     FROM ClaimRequest 
     WHERE user_id = p_user_id;
 END$$
-
--- =============================================
--- TRIGGERS
--- =============================================
-
--- Auto Update Item Status on Claim Approval
-CREATE TRIGGER AfterClaimApproved
-AFTER UPDATE ON ClaimRequest
-FOR EACH ROW
-BEGIN
-    IF NEW.status = 'approved' THEN
-        IF NEW.found_id IS NOT NULL THEN
-            -- When a claim on a found item is approved, mark the found item as returned
-            UPDATE FoundItem SET status = 'returned' WHERE found_id = NEW.found_id;
-        END IF;
-    END IF;
-END$$
-
--- Reset Item Status if Claim Rejected
-CREATE TRIGGER AfterClaimRejected
-AFTER UPDATE ON ClaimRequest
-FOR EACH ROW
-BEGIN
-    IF NEW.status = 'rejected' THEN
-        IF NEW.found_id IS NOT NULL THEN
-            -- When a claim on a found item is rejected, make it available again
-            UPDATE FoundItem SET status = 'available' WHERE found_id = NEW.found_id;
-        END IF;
-    END IF;
-END$$
-
 
 -- =============================================
 -- CLAIM MANAGEMENT PROCEDURES
@@ -430,8 +350,6 @@ BEGIN
     -- Insert the claim referencing the found item
     INSERT INTO ClaimRequest (found_id, user_id, description, status, claim_date)
     VALUES (p_found_id, p_user_id, p_description, 'pending', NOW());
-    -- Update found item status to indicate it's pending/returned
-    UPDATE FoundItem SET status = 'returned' WHERE found_id = p_found_id;
     SELECT LAST_INSERT_ID() as claim_id;
 END$$
 
@@ -455,33 +373,6 @@ BEGIN
     LEFT JOIN User u ON fi.user_id = u.user_id
     WHERE cr.user_id = p_user_id
     ORDER BY cr.claim_date DESC;
-END$$
-
--- Get claim details
-CREATE PROCEDURE GetClaimDetails(
-    IN p_claim_id INT,
-    IN p_user_id INT
-)
-BEGIN
-    SELECT 
-        cr.claim_id,
-        cr.claim_date,
-        cr.status,
-        cr.description AS claim_description,
-        cr.approved_date,
-        fi.item_name as item_name,
-        fi.description as item_description,
-        fi.category as category,
-        fi.location as location,
-        fi.found_date as item_date,
-        u.username as reported_by,
-        u.email as reporter_email,
-        u.phone as reporter_phone
-    FROM ClaimRequest cr
-    LEFT JOIN FoundItem fi ON cr.found_id = fi.found_id
-    LEFT JOIN User u ON fi.user_id = u.user_id
-    WHERE cr.claim_id = p_claim_id 
-    AND (cr.user_id = p_user_id OR p_user_id IS NULL);
 END$$
 
 CREATE PROCEDURE VerifyAdminLogin(IN p_username VARCHAR(50))
@@ -509,6 +400,26 @@ END$$
 CREATE PROCEDURE GetStaffById(IN p_staff_id INT)
 BEGIN
     SELECT staff_id, username, email, full_name, phone, created_at FROM Staff WHERE staff_id = p_staff_id LIMIT 1;
+END$$
+
+
+
+-- =============================================
+-- TRIGGERS
+-- =============================================
+
+-- Auto Update Item Status on Claim Approval
+CREATE TRIGGER AfterClaimApproved
+AFTER UPDATE ON ClaimRequest
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'approved' THEN
+        IF NEW.found_id IS NOT NULL THEN
+            -- When a claim on a found item is approved, mark the found item as returned
+            UPDATE FoundItem SET status = 'returned' WHERE found_id = NEW.found_id;
+            -- Do NOT update other claims here; handled in PHP to avoid MySQL error 1442
+        END IF;
+    END IF;
 END$$
 
 delimiter ;
