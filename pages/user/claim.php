@@ -59,6 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $typeFilter = isset($_GET['type_filter']) ? $_GET['type_filter'] : 'all';
 $statusFilter = isset($_GET['status_filter']) ? $_GET['status_filter'] : 'all';
 
+// Filter for claims
+$claimStatusFilter = isset($_GET['claim_status_filter']) ? $_GET['claim_status_filter'] : 'all';
+
 // Pagination settings
 $claimsPerPage = 5;
 $reportsPerPage = 5;
@@ -74,6 +77,13 @@ try {
     // Some PDO drivers do not allow binding LIMIT/OFFSET; inject integer values safely after casting
     $limit = (int)$claimsPerPage;
     $offset = (int)$claimsOffset;
+    
+    // Build WHERE clause with status filter
+    $whereClause = "c.user_id = :uid";
+    if ($claimStatusFilter !== 'all') {
+        $whereClause .= " AND c.status = :status";
+    }
+    
     $sql = "SELECT c.*, c.claim_date AS created_at,
                 'found' AS item_type,
                 f.item_name AS item_name,
@@ -84,22 +94,32 @@ try {
          FROM ClaimRequest c
          LEFT JOIN FoundItem f ON c.found_id = f.found_id
          LEFT JOIN User u_owner ON u_owner.user_id = f.user_id
-         WHERE c.user_id = :uid
+         WHERE $whereClause
          ORDER BY c.claim_date DESC
          LIMIT $limit OFFSET $offset";
 
     try {
         $claimsStmt = $pdo->prepare($sql);
-        $claimsStmt->execute([':uid' => $userId]);
+        $params = [':uid' => $userId];
+        if ($claimStatusFilter !== 'all') {
+            $params[':status'] = $claimStatusFilter;
+        }
+        $claimsStmt->execute($params);
         $claims = $claimsStmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log('Claims Query Error: ' . $e->getMessage());
         $claims = [];
     }
 
-    // Get total claims count for pagination
-    $totalClaimsStmt = $pdo->prepare("SELECT COUNT(*) FROM ClaimRequest WHERE user_id = ?");
-    $totalClaimsStmt->execute([$userId]);
+    // Get total claims count for pagination (with filter)
+    $countWhere = "user_id = ?";
+    $countParams = [$userId];
+    if ($claimStatusFilter !== 'all') {
+        $countWhere .= " AND status = ?";
+        $countParams[] = $claimStatusFilter;
+    }
+    $totalClaimsStmt = $pdo->prepare("SELECT COUNT(*) FROM ClaimRequest WHERE $countWhere");
+    $totalClaimsStmt->execute($countParams);
     $totalClaims = $totalClaimsStmt->fetchColumn();
     $totalClaimsPages = ceil($totalClaims / $claimsPerPage);
     
@@ -313,14 +333,51 @@ if ($showDebugClaims) {
         }
         .empty-state {
             text-align: center;
-            padding: 2rem 1rem;
+            padding: 3rem 2rem;
             color: #6c757d;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 16px;
+            border: 2px dashed #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .empty-state:hover {
+            border-color: #c0c0c0;
+            transform: translateY(-2px);
+        }
+        .empty-state-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
         }
         .empty-state i {
             font-size: 2.5rem;
-            color: #dee2e6;
-            margin-bottom: 1rem;
+            color: #9e9e9e;
             display: block;
+        }
+        .empty-state h5 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+        .empty-state p {
+            color: #78909c;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+        .empty-state .btn {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .empty-state .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
         /* Profile stats cards */
         .profile-stats { display: flex; gap: 1rem; margin-bottom: 1rem; }
@@ -376,8 +433,11 @@ if ($showDebugClaims) {
 
                     <?php if (empty($reportedItems)): ?>
                         <div class="empty-state">
-                            <i class="bi bi-inbox"></i>
-                            <p>You haven't reported any items yet.</p>
+                            <div class="empty-state-icon">
+                                <i class="bi bi-inbox"></i>
+                            </div>
+                            <h5>No Reports Yet</h5>
+                            <p>You haven't reported any items yet.<br>Start by reporting a lost or found item.</p>
                             <div class="mt-3">
                                 <a href="lost.php" class="btn btn-primary me-2">
                                     <i class="bi bi-plus-circle me-1"></i> Report Lost Item
@@ -474,7 +534,7 @@ if ($showDebugClaims) {
                 </div>
             </div>
 
-            <!-- Filter Modal (placed once at page level, outside the loop) -->
+            <!-- Reports Filter Modal -->
             <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-sm modal-dialog-centered">
                     <div class="modal-content">
@@ -510,20 +570,57 @@ if ($showDebugClaims) {
                 </div>
             </div>
 
+            <!-- Claims Filter Modal -->
+            <div class="modal fade" id="claimFilterModal" tabindex="-1" aria-labelledby="claimFilterModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="claimFilterModalLabel">Filter Claims</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form method="get">
+                        <div class="modal-body">
+                            <div class="mb-2">
+                                <label class="form-label">Status</label>
+                                <select name="claim_status_filter" class="form-select form-select-sm">
+                                    <option value="all" <?php echo $claimStatusFilter === 'all' ? 'selected' : ''; ?>>All</option>
+                                    <option value="pending" <?php echo $claimStatusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="approved" <?php echo $claimStatusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                                    <option value="rejected" <?php echo $claimStatusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="claim.php" class="btn btn-sm btn-outline-secondary">Reset</a>
+                            <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+                        </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- My Claim Requests (right) -->
             <div class="col-lg-6">
                 <h3 class="list-section-title">My Claim Requests</h3>
                 <div class="bg-light p-3 p-md-4 rounded shadow-sm h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#claimFilterModal">
+                                <i class="bi bi-funnel-fill"></i> Filters
+                            </button>
+                            <a href="claim.php" class="btn btn-sm btn-outline-secondary ms-2">Reset</a>
+                        </div>
+                        <div class="text-muted small">Showing <?php echo number_format($totalClaims); ?> claims</div>
+                    </div>
                     <?php if (empty($claims)): ?>
                         <div class="empty-state">
-                            <i class="bi bi-inbox"></i>
-                            <p>You haven't made any claims yet.</p>
-                            <?php if (isset($totalClaims) && $totalClaims == 0): ?>
-                                <small class="text-muted">No claim records were found for your account.</small>
-                            <?php else: ?>
-                                <small class="text-muted">If you recently submitted a claim, please wait a moment and refresh.</small>
-                            <?php endif; ?>
-                            <a href="search.php" class="btn btn-primary mt-3">
+                            <div class="empty-state-icon">
+                                <i class="bi bi-clipboard-check"></i>
+                            </div>
+                            <h5>No Claims Yet</h5>
+                            <p>You haven't made any claims yet.<br>Browse items to find what you're looking for.</p>
+                            
+                            <a href="search.php" class="btn btn-primary mt-2">
                                 <i class="bi bi-search me-1"></i> Browse Items
                             </a>
                             <?php if (!empty($showDebugClaims)): ?>
