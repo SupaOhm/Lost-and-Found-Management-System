@@ -5,6 +5,7 @@ require_once '../config/db.php';
 $error = '';
 $success = '';
 
+
 // Check if user is already logged in
 if (isset($_SESSION['user_id'])) {
     header('Location: user/userdash.php');

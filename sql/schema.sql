@@ -8,7 +8,7 @@ CREATE TABLE User (
     username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
+    phone VARBINARY(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -42,7 +42,7 @@ CREATE TABLE Staff (
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100),
     full_name VARCHAR(100),
-    phone VARCHAR(20),
+    phone VARBINARY(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

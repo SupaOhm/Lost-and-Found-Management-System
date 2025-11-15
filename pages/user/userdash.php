@@ -44,9 +44,8 @@ try {
     $stats['found_items'] = $result['count'];
     $stmt->closeCursor();
     
-    // Get user's claims count
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM ClaimRequest WHERE user_id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
+    // Get total claims count
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM ClaimRequest");
     $result = $stmt->fetch();
     $stats['my_claims'] = $result['count'];
     $stmt->closeCursor();
@@ -157,19 +156,19 @@ try {
                 <div class="col-12 col-md-4 d-flex align-items-center justify-content-end">
                     <div class="stat-card text-center d-flex flex-column align-items-center justify-content-center h-100">
                         <div class="stat-number"><?php echo number_format($stats['lost_items']); ?></div>
-                        <div class="stat-label">Lost Items Reported</div>
+                        <div class="stat-label">Total Lost Reported</div>
                     </div>
                 </div>
                 <div class="col-12 col-md-4 d-flex align-items-center justify-content-center">
                     <div class="stat-card text-center d-flex flex-column align-items-center justify-content-center h-100">
                         <div class="stat-number"><?php echo number_format($stats['found_items']); ?></div>
-                        <div class="stat-label">Found Items Reported</div>
+                        <div class="stat-label">Total Found Reported</div>
                     </div>
                 </div>
                 <div class="col-12 col-md-4 d-flex align-items-center justify-content-start">
                     <div class="stat-card text-center d-flex flex-column align-items-center justify-content-center h-100">
                         <div class="stat-number"><?php echo number_format($stats['my_claims']); ?></div>
-                        <div class="stat-label">Claims</div>
+                        <div class="stat-label">Total Claims</div>
                     </div>
                 </div>
             </div>

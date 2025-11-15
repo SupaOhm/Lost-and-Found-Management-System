@@ -15,11 +15,15 @@ if (isset($_GET['delete_staff'])) {
 
 // Handle add staff
 if (isset($_POST['add_staff'])) {
+    require_once '../../includes/functions.php';
     $username = $_POST['username'];
     $password = $_POST['password'];
     $email = $_POST['email'];
     $full_name = $_POST['full_name'];
     $phone = $_POST['phone'];
+    $encryptedPhone = encrypt_phone($phone);
+    
+   
     
     try {
         // Check if username already exists
@@ -32,7 +36,7 @@ if (isset($_POST['add_staff'])) {
             // Hash the password before storing
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("INSERT INTO staff (username, password, email, full_name, phone) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$username, $hashedPassword, $email, $full_name, $phone]);
+            $stmt->execute([$username, $hashedPassword, $email, $full_name, $encryptedPhone]);
             $success = "Staff account created successfully!";
         }
     } catch (Exception $e) {
@@ -58,6 +62,10 @@ $staff_details = null;
 if (isset($_GET['view_staff'])) {
     $staff_id = $_GET['view_staff'];
     $staff_details = $pdo->query("SELECT * FROM staff WHERE staff_id = $staff_id")->fetch();
+        if ($staff_details && isset($staff_details['phone'])) {
+            require_once '../../includes/functions.php';
+            $staff_details['phone'] = decrypt_phone($staff_details['phone']);
+        }
 }
 ?>
 
@@ -73,6 +81,7 @@ if (isset($_GET['view_staff'])) {
     <link rel="stylesheet" href="../../assets/admin-style.css">
 </head>
 <body>
+     
     <?php include('includes/header.php'); ?>
     <div class="admin-container">
         <!-- Sidebar -->
@@ -83,6 +92,7 @@ if (isset($_GET['view_staff'])) {
                 </h4>
             </div>
             <nav class="nav flex-column">
+                
                 <a class="nav-link" href="admin_dashboard.php">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
@@ -221,17 +231,34 @@ if (isset($_GET['view_staff'])) {
                                             <th>Username</th>
                                             <th>Full Name</th>
                                             <th>Email</th>
+                                                <th>Phone</th>
                                             <th>Created</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($staff as $staff_member): ?>
+                                        <?php 
+                                        require_once '../../includes/functions.php';
+                                        foreach ($staff as $staff_member): 
+                                        ?>
                                         <tr>
                                             <td>#<?php echo $staff_member['staff_id']; ?></td>
                                             <td><?php echo $staff_member['username']; ?></td>
                                             <td><?php echo $staff_member['full_name'] ?: 'N/A'; ?></td>
                                             <td><?php echo $staff_member['email']; ?></td>
+                                            <td>
+                                                <?php 
+                                                    $phone = '';
+                                                    if (!empty($staff_member['phone'])) {
+                                                        try {
+                                                            $phone = decrypt_phone($staff_member['phone']);
+                                                        } catch (Exception $e) {
+                                                            $phone = 'N/A';
+                                                        }
+                                                    }
+                                                    echo $phone ?: 'N/A';
+                                                ?>
+                                            </td>
                                             <td><?php echo date('M j, Y', strtotime($staff_member['created_at'])); ?></td>
                                             <td>
                                                 <div class="btn-group btn-group-sm" role="group">

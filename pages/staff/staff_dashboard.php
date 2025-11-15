@@ -46,6 +46,7 @@ try {
 <body>
     <?php include('includes/header.php'); ?>
     <div class="admin-container">
+        
         <!-- Sidebar -->
         <div class="admin-sidebar">
             <div class="admin-sidebar-header">

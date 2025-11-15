@@ -12,6 +12,7 @@ if (isset($_SESSION['staff_id'])) {
 
 // Handle staff login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_once '../includes/functions.php';
     $username = trim($_POST['username']);
     $password = $_POST['password'];
     
@@ -36,15 +37,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['staff_id'] = $staffData['staff_id'];
                 $_SESSION['username'] = $staffData['username'];
                 $_SESSION['is_staff'] = true;
-                
                 if (isset($staffData['email'])) {
                     $_SESSION['email'] = $staffData['email'];
                 }
-                
                 if (isset($staffData['full_name'])) {
                     $_SESSION['full_name'] = $staffData['full_name'];
                 }
-                
+                if (isset($staffData['phone'])) {
+                    $_SESSION['phone'] = decrypt_phone($staffData['phone']);
+                }
                 header('Location: staff/staff_dashboard.php');
                 exit();
             } else {

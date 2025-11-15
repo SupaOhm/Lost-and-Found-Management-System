@@ -38,6 +38,30 @@ function validate_email($email) {
 }
 
 /**
+ * Encrypt a phone number using AES-256-CBC
+ * @param string $plaintext The phone number to encrypt
+ * @return string Encrypted phone number (base64 encoded)
+ */
+function encrypt_phone($plaintext) {
+    $key = getenv('LF_ENCRYPT_KEY') ?: 'default_32_characters_long_key!'; // Use env or fallback
+    $iv = substr(hash('sha256', $key), 0, 16); // 16 bytes IV
+    $encrypted = openssl_encrypt($plaintext, 'AES-256-CBC', $key, 0, $iv);
+    return base64_encode($encrypted);
+}
+
+/**
+ * Decrypt a phone number using AES-256-CBC
+ * @param string $encrypted The encrypted phone number (base64 encoded)
+ * @return string Decrypted phone number
+ */
+function decrypt_phone($encrypted) {
+    $key = getenv('LF_ENCRYPT_KEY') ?: 'default_32_characters_long_key!';
+    $iv = substr(hash('sha256', $key), 0, 16);
+    $encrypted = base64_decode($encrypted);
+    return openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+}
+
+/**
  * Check if user is logged in
  * 
  * @return bool True if user is logged in, false otherwise

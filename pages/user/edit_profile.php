@@ -21,6 +21,9 @@ try {
     if (!$user) {
         throw new Exception('User not found');
     }
+    if (isset($user['phone'])) {
+        $user['phone'] = decrypt_phone($user['phone']);
+    }
 } catch (PDOException $e) {
     $error = 'Error loading profile: ' . $e->getMessage();
 }
@@ -36,9 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             throw new Exception('Please provide a name and email.');
         }
 
+        // Encrypt phone before saving
+        $encryptedPhone = encrypt_phone($phone);
         // Update using stored procedure (expects: user_id, username, email, phone)
         $stmt = $pdo->prepare("CALL UpdateUserProfile(?, ?, ?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $username, $email, $phone]);
+        $stmt->execute([$_SESSION['user_id'], $username, $email, $encryptedPhone]);
         $stmt->closeCursor();
 
         $success = 'Profile updated successfully. Redirecting...';

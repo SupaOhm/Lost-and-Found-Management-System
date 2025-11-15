@@ -16,6 +16,7 @@ if (isset($_SESSION['user_id'])) {
 
 // Handle registration form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_once '../includes/functions.php';
     $fullName = trim($_POST['fullName']);
     $email = trim($_POST['email']);
     $phone = trim($_POST['phone']);
@@ -42,8 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // Hash password and insert new user using stored procedure
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                $encryptedPhone = encrypt_phone($phone);
                 $stmt = $pdo->prepare("CALL RegisterUser(?, ?, ?, ?)");
-                $stmt->execute([$fullName, $email, $hashedPassword, $phone]);
+                $stmt->execute([$fullName, $email, $hashedPassword, $encryptedPhone]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $stmt->closeCursor(); // Close the cursor
                 

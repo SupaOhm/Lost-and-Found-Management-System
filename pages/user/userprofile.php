@@ -22,10 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         $username = sanitize_input($_POST['username'] ?? $_POST['full_name'] ?? '');
         $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
         $phone = sanitize_phone($_POST['phone'] ?? '');
-
+        $encryptedPhone = encrypt_phone($phone);
         // Call stored procedure to update user profile (user_id, username, email, phone)
         $stmt = $pdo->prepare("CALL UpdateUserProfile(?, ?, ?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $username, $email, $phone]);
+        $stmt->execute([$_SESSION['user_id'], $username, $email, $encryptedPhone]);
         $stmt->closeCursor();
 
         $success = 'Profile updated successfully!';
@@ -74,9 +74,12 @@ try {
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     $stmt->closeCursor();
-    
     if (!$user) {
         throw new Exception("User not found");
+    }
+    // Decrypt phone for display
+    if (isset($user['phone'])) {
+        $user['phone'] = decrypt_phone($user['phone']);
     }
     
     // Get user stats using stored procedures

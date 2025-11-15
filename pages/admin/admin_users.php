@@ -23,15 +23,16 @@ $users = $pdo->query("SELECT * FROM User ORDER BY created_at DESC")->fetchAll();
 // Get user details if viewing
 $user_details = null;
 if (isset($_GET['view_user'])) {
+    require_once '../../includes/functions.php';
     $user_id = $_GET['view_user'];
     $user_details = $pdo->query("SELECT * FROM User WHERE user_id = $user_id")->fetch();
-    
+    if ($user_details && isset($user_details['phone'])) {
+        $user_details['phone'] = decrypt_phone($user_details['phone']);
+    }
     // Get user's lost items count
     $lost_count = $pdo->query("SELECT COUNT(*) FROM LostItem WHERE user_id = $user_id")->fetchColumn();
-    
     // Get user's found items count
     $found_count = $pdo->query("SELECT COUNT(*) FROM FoundItem WHERE user_id = $user_id")->fetchColumn();
-    
     // Get user's claims count
     $claims_count = $pdo->query("SELECT COUNT(*) FROM ClaimRequest WHERE user_id = $user_id")->fetchColumn();
 }
@@ -150,7 +151,20 @@ if (isset($_GET['view_user'])) {
                                             <td>#<?php echo $user['user_id']; ?></td>
                                             <td><?php echo $user['username']; ?></td>
                                             <td><?php echo $user['email']; ?></td>
-                                            <td><?php echo $user['phone'] ?: 'N/A'; ?></td>
+                                            <td>
+                                                <?php
+                                                    require_once '../../includes/functions.php';
+                                                    $phone = '';
+                                                    if (!empty($user['phone'])) {
+                                                        try {
+                                                            $phone = decrypt_phone($user['phone']);
+                                                        } catch (Exception $e) {
+                                                            $phone = 'N/A';
+                                                        }
+                                                    }
+                                                    echo $phone ?: 'N/A';
+                                                ?>
+                                            </td>
                                             <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm" role="group">
