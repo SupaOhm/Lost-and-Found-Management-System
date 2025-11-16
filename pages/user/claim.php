@@ -107,6 +107,17 @@ try {
             if (!isset($claim['created_at']) || $claim['created_at'] === null) {
                 $claim['created_at'] = '';
             }
+            // Ensure found_id is available for approved claims to link to detail view
+            if (!isset($claim['found_id']) || empty($claim['found_id'])) {
+                try {
+                    $stmtFound = $pdo->prepare('SELECT found_id FROM ClaimRequest WHERE claim_id = ?');
+                    $stmtFound->execute([$claim['claim_id']]);
+                    $claim['found_id'] = $stmtFound->fetchColumn();
+                } catch (PDOException $e) {
+                    error_log('Found ID fetch error: ' . $e->getMessage());
+                    $claim['found_id'] = null;
+                }
+            }
         }
         unset($claim);
     } catch (PDOException $e) {
@@ -694,6 +705,11 @@ if ($showDebugClaims) {
                                                     <?php echo ucfirst($claim['status']); ?>
                                                 </span>
                                                 <div style="margin-left:auto;">
+                                                    <?php if (strtolower($claim['status']) === 'approved' && !empty($claim['found_id'])): ?>
+                                                        <a href="item_detail.php?type=found&id=<?php echo $claim['found_id']; ?>" class="btn btn-sm btn-circle btn-view me-1" title="View Item">
+                                                            <i class="bi bi-eye-fill"></i>
+                                                        </a>
+                                                    <?php endif; ?>
                                                     <form method="post" class="d-inline" onsubmit="return confirm('Delete this claim?');">
                                                         <input type="hidden" name="action" value="delete_claim">
                                                         <input type="hidden" name="claim_id" value="<?php echo $claim['claim_id']; ?>">

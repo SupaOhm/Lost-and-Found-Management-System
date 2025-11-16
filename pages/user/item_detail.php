@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../../config/userconfig.php';
+require_once '../../config/db.php'; // Ensure $pdo is available
 require_once '../../includes/functions.php'; // for decrypt_phone
 
 // Check if user is logged in
@@ -21,7 +22,8 @@ $item = null;
 $error = '';
 $success = '';
 $userCanClaim = false;
-$isOwner = false;
+$isOwner = false; // initialize to avoid undefined when $item not found
+
 
 try {
     // Use the $pdo instance from config/db.php
@@ -33,6 +35,7 @@ try {
                               JOIN User u ON l.user_id = u.user_id 
                               WHERE l.lost_id = ?");
     } else {
+        // Always fetch found item regardless of status
         $stmt = $pdo->prepare("SELECT f.*, u.username AS full_name, u.email, u.phone 
                               FROM FoundItem f 
                               JOIN User u ON f.user_id = u.user_id 
@@ -41,10 +44,11 @@ try {
     
     $stmt->execute([$itemId]);
     $item = $stmt->fetch(PDO::FETCH_ASSOC);
-    
     if (!$item) {
         $error = 'Item not found or has been removed.';
     } else {
+        // Check if current user is the owner
+        $isOwner = ($_SESSION['user_id'] == $item['user_id']);
         // Decrypt phone if present and not empty
         if (!empty($item['phone'])) {
             $decryptedPhone = decrypt_phone($item['phone']);
@@ -52,28 +56,48 @@ try {
                 $item['phone'] = $decryptedPhone;
             }
         }
-        // Check if current user is the owner
-        $isOwner = ($_SESSION['user_id'] == $item['user_id']);
-        // Check if user can claim: only non-owners can claim FOUND items that are available.
-        $userCanClaim = !$isOwner && ($itemType === 'found' && $item['status'] === 'available');
+        // Determine if current user (non-owner) has an approved claim on this found item
+        $hasApprovedClaim = false;
+        if (!$isOwner && $itemType === 'found') {
+            try {
+                $stmtApproved = $pdo->prepare("SELECT 1 FROM ClaimRequest WHERE found_id = ? AND user_id = ? AND status = 'approved' LIMIT 1");
+                $stmtApproved->execute([$itemId, $_SESSION['user_id']]);
+                $hasApprovedClaim = (bool)$stmtApproved->fetchColumn();
+            } catch (PDOException $e) {
+                error_log('Approved claim check error: ' . $e->getMessage());
+            }
+        }
+        // Check if user can claim: only non-owners can claim FOUND items that are available and without an approved claim
+        $userCanClaim = !$isOwner && !$hasApprovedClaim && ($itemType === 'found' && $item['status'] === 'available');
+
+        // If owner viewing a found item, get accepted claim and claimer info
+        $accepted_claim = null;
+        $claimer_info = null;
+        if ($isOwner && $itemType === 'found') {
+            $stmt2 = $pdo->prepare("SELECT c.claim_id, c.description AS claim_description, u.username, u.email, u.phone FROM ClaimRequest c JOIN User u ON c.user_id = u.user_id WHERE c.found_id = ? AND c.status = 'approved' ORDER BY c.approved_date DESC LIMIT 1");
+            $stmt2->execute([$itemId]);
+            $accepted_claim = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if ($accepted_claim) {
+                $claimer_info = [
+                    'name' => $accepted_claim['username'],
+                    'email' => $accepted_claim['email'],
+                    'phone' => !empty($accepted_claim['phone']) ? decrypt_phone($accepted_claim['phone']) : ''
+                ];
+            }
+        }
         // Handle claim submission
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['claim_item']) && $userCanClaim) {
-            // Use native sanitization to avoid deprecated FILTER_SANITIZE_STRING
             $claimDescription = isset($_POST['claim_description']) ? trim($_POST['claim_description']) : '';
-            // Remove any HTML tags and limit length for safety
             $claimDescription = strip_tags($claimDescription);
-
             if ($claimDescription === '') {
                 $error = 'Please provide a description of why you believe this is your item.';
             } else {
-                // Submit claim using stored procedure
                 try {
-                    $stmt = $pdo->prepare("CALL SubmitClaim(?, ?, ?)");
-                    $stmt->execute([$itemId, $_SESSION['user_id'], $claimDescription]);
+                    $stmt3 = $pdo->prepare("CALL SubmitClaim(?, ?, ?)");
+                    $stmt3->execute([$itemId, $_SESSION['user_id'], $claimDescription]);
                     $success = 'Your claim has been submitted successfully! The item owner will review your claim and contact you if it matches their records.';
-                    $userCanClaim = false; // Disable claim button after submission
+                    $userCanClaim = false;
                 } catch (PDOException $e) {
-                    // Log detailed error for debugging and show a concise message to the user
                     error_log('Claim DB Error: ' . $e->getMessage());
                     $error = 'An error occurred while processing your request. Please try again. (' . $e->getMessage() . ')';
                 }
@@ -266,7 +290,7 @@ try {
                                         <div class="fw-medium">Name</div>
                                         <div><?php echo htmlspecialchars($item['full_name']); ?></div>
                                     </div>
-                                    <?php if ($isOwner || $itemType === 'lost' || !empty($item['show_contact'])): ?>
+                                    <?php if ($isOwner || $itemType === 'lost' || $hasApprovedClaim || !empty($item['show_contact'])): ?>
                                         <div class="col-md-6 mb-2">
                                             <div class="fw-medium">Email</div>
                                             <div><?php echo htmlspecialchars($item['email']); ?></div>
@@ -275,6 +299,13 @@ try {
                                             <div class="col-md-6">
                                                 <div class="fw-medium">Phone</div>
                                                 <div><?php echo htmlspecialchars($item['phone']); ?></div>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!$isOwner && $itemType === 'found' && $hasApprovedClaim): ?>
+                                            <div class="col-12 mt-2">
+                                                <div class="alert alert-success py-2 mb-0" style="font-size:0.85rem;">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Your claim was approved. Contact info is now visible.
+                                                </div>
                                             </div>
                                         <?php endif; ?>
                                     <?php else: ?>
@@ -293,6 +324,17 @@ try {
                                         </div>
                                     <?php endif; ?>
                                 </div>
+                                <?php if ($isOwner && $itemType === 'found' && $claimer_info): ?>
+                                    <div class="mt-4 p-3 rounded" style="background: linear-gradient(90deg,#e7f1ff 0%,#f0f8ff 100%); border:1px solid #b8daff;">
+                                        <h6 class="mb-2 fw-semibold"><i class="bi bi-person-check me-1"></i> Claimer Contact Information</h6>
+                                        <div class="mb-1"><strong>Name:</strong> <?php echo htmlspecialchars($claimer_info['name']); ?></div>
+                                        <div class="mb-1"><strong>Email:</strong> <?php echo htmlspecialchars($claimer_info['email']); ?></div>
+                                        <?php if (!empty($claimer_info['phone'])): ?>
+                                            <div class="mb-1"><strong>Phone:</strong> <?php echo htmlspecialchars($claimer_info['phone']); ?></div>
+                                        <?php endif; ?>
+                                        <div class="mt-2 text-muted" style="font-size:.95em;">This person claimed your item and their contact info is shown because the claim was accepted.</div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                             
                             

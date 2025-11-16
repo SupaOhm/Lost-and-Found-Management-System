@@ -140,14 +140,19 @@ END$$
 -- =============================================
 
 -- View Pending Claims (Admin)
-CREATE PROCEDURE ViewPendingClaims()
+CREATE PROCEDURE ViewPendingClaimsWithFoundDetails()
 BEGIN
     SELECT c.claim_id,
            u.username AS requester,
            c.description AS claim_description,
-           f.item_name AS found_item,
-           c.status,
-           c.claim_date
+           c.claim_date,
+           f.found_id,
+           f.item_name,
+           f.description,
+           f.category,
+           f.location,
+           f.found_date,
+           c.status
     FROM ClaimRequest c
     LEFT JOIN User u ON c.user_id = u.user_id
     LEFT JOIN FoundItem f ON c.found_id = f.found_id

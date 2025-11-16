@@ -51,7 +51,7 @@ if (isset($_POST['reject_claim'])) {
 // Get pending claims
 try {
     // Use stored procedure to fetch pending claims
-    $stmt = $pdo->query("CALL ViewPendingClaims()");
+    $stmt = $pdo->query("CALL ViewPendingClaimsWithFoundDetails()");
     $pending_claims = $stmt->fetchAll();
     // Close cursor to free connection for further calls
     $stmt->closeCursor();
@@ -137,6 +137,7 @@ try {
                                             <th>Claimant</th>
                                             <th>Claim Details</th>
                                             <th>Date Claimed</th>
+                                            <th>Found Item</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -155,6 +156,15 @@ try {
                                                     ?>
                                                 </td>
                                                 <td><?php echo date('M j, Y', strtotime($claim['claim_date'])); ?></td>
+                                                <td>
+                                                    <div class="small">
+                                                        <strong><?php echo htmlspecialchars($claim['item_name']); ?></strong><br>
+                                                        <span class="text-muted">Category:</span> <?php echo htmlspecialchars($claim['category']); ?><br>
+                                                        <span class="text-muted">Location:</span> <?php echo htmlspecialchars($claim['location']); ?><br>
+                                                        <span class="text-muted">Date:</span> <?php echo date('M j, Y', strtotime($claim['found_date'])); ?><br>
+                                                        <span class="text-muted">Description:</span> <?php echo htmlspecialchars($claim['description']); ?>
+                                                    </div>
+                                                </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm" role="group">
                                                         <form method="POST" class="d-inline">

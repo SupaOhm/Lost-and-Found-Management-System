@@ -81,6 +81,7 @@ try {
 }
 
 // Check for recent claim status updates (approved/rejected in last 7 days)
+// Claim notifications for user (claims they made)
 $claim_notifications = [];
 $claim_notification_count = 0;
 try {
@@ -101,8 +102,30 @@ try {
     error_log("Claim notification error: " . $e->getMessage());
 }
 
+// Notify found item reporter when a claim is accepted (show only to found item owner)
+$found_claim_notifications = [];
+$found_claim_notification_count = 0;
+try {
+    $stmt = $pdo->prepare("
+        SELECT c.claim_id, c.approved_date, u.username AS claimer_name, u.email AS claimer_email, u.phone AS claimer_phone, f.item_name, f.found_id
+        FROM ClaimRequest c
+        JOIN User u ON c.user_id = u.user_id
+        JOIN FoundItem f ON c.found_id = f.found_id
+        WHERE f.user_id = ?
+        AND c.status = 'approved'
+        AND c.approved_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        ORDER BY c.approved_date DESC
+        LIMIT 5
+    ");
+    $stmt->execute([$_SESSION['user_id']]);
+    $found_claim_notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $found_claim_notification_count = count($found_claim_notifications);
+} catch (PDOException $e) {
+    error_log("Found claim notification error: " . $e->getMessage());
+}
+
 // Calculate total notification count
-$total_notification_count = $match_count + $claim_notification_count;
+$total_notification_count = $match_count + $claim_notification_count + $found_claim_notification_count;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -166,6 +189,21 @@ $total_notification_count = $match_count + $claim_notification_count;
                                         <div class="flex-grow-1">
                                             <div class="notification-item-title">Claim <?php echo ucfirst($claim_notif['status']); ?></div>
                                             <div class="notification-item-text">Your claim for "<?php echo htmlspecialchars($claim_notif['item_name']); ?>" was <?php echo $claim_notif['status']; ?></div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                            <?php foreach ($found_claim_notifications as $found_notif): ?>
+                            <li>
+                                <a class="dropdown-item notification-item" href="item_detail.php?type=found&id=<?php echo $found_notif['found_id']; ?>">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <div class="notification-icon-small claim-type">
+                                            <i class="bi bi-person-check"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="notification-item-title">Item Claimed</div>
+                                            <div class="notification-item-text">Someone claimed your item "<?php echo htmlspecialchars($found_notif['item_name']); ?>".<br><span class="text-muted small">View claimer contact info</span></div>
                                         </div>
                                     </div>
                                 </a>

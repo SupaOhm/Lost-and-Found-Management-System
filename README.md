@@ -22,6 +22,13 @@ Lost & Found is a community-driven platform designed to help reunite people with
 - **Real-time Notifications** — Bell icon notifications for potential matches and claim updates
 - **Search & Filter** — Find items by category, status, date, location, and type
 - **Claims Management** — Submit and track claims on found items with approval workflow
+  - View button for approved claims to access owner contact info
+  - Track claim status (pending/approved/rejected) with visual indicators
+- **Contact Information Sharing** — Smart contact info visibility:
+  - Lost items: Contact info always visible to help return items
+  - Found items: Contact info revealed only after claim approval
+  - Approved claimers can view owner contact details
+  - Found item owners can view claimer contact details after approval
 - **Profile Management** — View and update user profile information with encrypted phone numbers
 - **Enhanced Dashboard** — Personal dashboard with stats, notifications, and quick actions
 - **Step-by-Step Guidance** — Context-aware guidance for claiming found items or contacting lost item reporters
@@ -30,14 +37,17 @@ Lost & Found is a community-driven platform designed to help reunite people with
 
 ### Admin Features
 - **Claim Approval/Rejection** — Review and approve/reject user claims with admin notes
-- **Report Management** — View and manage all lost and found reports
+  - Full item details displayed in claim review interface
+  - Contact information sharing automatically triggered upon approval
+- **Report Management** — View and manage all lost and found reports with complete item details
 - **User Management** — View and manage user accounts
 - **Staff Management** — Create and manage staff accounts
 - **Dashboard Analytics** — View system-wide statistics and activity
 
 ### Staff Features
-- **Report Verification** — Verify and manage item reports
-- **Claim Processing** — Assist with claim verification
+- **Report Verification** — Verify and manage item reports with full item details
+- **Claim Processing** — Assist with claim verification and approval
+  - Complete item information displayed during claim review
 - **User Support** — Help users with claims and inquiries
 
 ## Technology Stack
@@ -212,11 +222,12 @@ Check `sql/syntheticrecords.sql` for test users created during database initiali
   - Filter by Type (Lost/Found) and Status (Open/Closed)
   - Delete reports
   - Mark items as found/returned
-  - View item details
+  - View item details with one-click access
 - **Right Panel:** View your claims on other users' found items with pagination
   - Track claim status (pending/approved/rejected)
   - Delete claims
   - View admin notes
+  - **View Button:** For approved claims, directly access item detail page to see owner contact info
 - **Profile Stats:** View counts of your lost items, found items, and claims
 
 ### Search & Discovery
@@ -237,10 +248,16 @@ Check `sql/syntheticrecords.sql` for test users created during database initiali
 - **Context-Aware Guidance:**
   - **Lost Items:** "How to Contact" guidance with 3 steps (verify info → contact owner → share/return)
   - **Found Items:** "How to Claim" guidance with 3 steps (verify details → submit claim → prove ownership)
-- **Contact Information:**
-  - Lost items show reporter's email and phone (decrypted for display)
-  - Found items hide contact until claim is approved
-- **Modern UI:** Gradient backgrounds, rounded cards, icon badges
+- **Smart Contact Information Display:**
+  - **Lost items:** Reporter's email and phone always visible (decrypted for display) to facilitate returns
+  - **Found items (non-owner view):** Contact info protected until claim approval
+  - **Found items (approved claimer):** Owner contact info becomes visible with approval notification
+  - **Found items (owner view):** Claimer contact info displayed after approving their claim
+- **Seamless Claim Workflow:**
+  - Claim submission integrated into item detail page
+  - Automatic notification when viewing own items
+  - Direct access to approved claim details via view button
+- **Modern UI:** Gradient backgrounds, rounded cards, icon badges, status-aware displays
 
 ### Admin Panel
 - **Notification System** — Real-time bell icon notifications for:
@@ -262,8 +279,10 @@ Check `sql/syntheticrecords.sql` for test users created during database initiali
 4. **View Matches** — Check notification bell for potential matches between your lost items and found reports
 5. **Search** — Use the search feature to find items matching your needs
 6. **Claim** — Submit a claim on a found item if you believe it's yours
-7. **Contact** — For lost items, directly contact the reporter using provided email/phone
-8. **Manage** — Track your claims and reports from the dashboard, mark items as found/returned
+7. **Track Claim Status** — Monitor your claim from the "Claims & Reports" page
+8. **Access Owner Info** — Once your claim is approved, click the view button to see owner contact details
+9. **Contact** — For lost items, directly contact the reporter using provided email/phone; for approved found item claims, contact info becomes visible
+10. **Manage** — Track your claims and reports from the dashboard, mark items as found/returned, and view claimer contact info after approving claims
 
 ### For Admins
 
@@ -276,11 +295,12 @@ Check `sql/syntheticrecords.sql` for test users created during database initiali
 ## Security Features
 
 - **Password Hashing** — All passwords hashed using PHP's password_hash (bcrypt)
-- **Phone Number Encryption** — Phone numbers encrypted using AES-256-CBC
+- **Phone Number Encryption** — Phone numbers encrypted using AES-256-CBC with automatic decryption for display
 - **Prepared Statements** — PDO prepared statements prevent SQL injection
 - **Session Management** — Secure session-based authentication
 - **Input Validation** — Server-side validation and sanitization
 - **Ownership Checks** — Users can only modify their own reports/claims
+- **Privacy-First Contact Sharing** — Contact information only revealed when appropriate (claim approval)
 - **Database Privilege Separation** — Different DB users with minimal required privileges
 
 ## UI/UX Features
