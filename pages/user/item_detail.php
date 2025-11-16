@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../../config/userconfig.php';
-require_once '../../config/db.php'; // Ensure $pdo is available
+
 require_once '../../includes/functions.php'; // for decrypt_phone
 
 // Check if user is logged in
