@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../../config/userconfig.php';
+require_once '../../includes/functions.php'; // for decrypt_phone
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -44,13 +45,17 @@ try {
     if (!$item) {
         $error = 'Item not found or has been removed.';
     } else {
-    // Check if current user is the owner
-    $isOwner = ($_SESSION['user_id'] == $item['user_id']);
-        
-    // Check if user can claim: only non-owners can claim FOUND items that are available.
-    // Lost items are not claimable by other users.
-    $userCanClaim = !$isOwner && ($itemType === 'found' && $item['status'] === 'available');
-        
+        // Decrypt phone if present and not empty
+        if (!empty($item['phone'])) {
+            $decryptedPhone = decrypt_phone($item['phone']);
+            if ($decryptedPhone !== false && $decryptedPhone !== null) {
+                $item['phone'] = $decryptedPhone;
+            }
+        }
+        // Check if current user is the owner
+        $isOwner = ($_SESSION['user_id'] == $item['user_id']);
+        // Check if user can claim: only non-owners can claim FOUND items that are available.
+        $userCanClaim = !$isOwner && ($itemType === 'found' && $item['status'] === 'available');
         // Handle claim submission
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['claim_item']) && $userCanClaim) {
             // Use native sanitization to avoid deprecated FILTER_SANITIZE_STRING
