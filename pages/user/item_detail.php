@@ -188,6 +188,27 @@ try {
             background-color: #d1ecf1;
             color: #0c5460;
         }
+        /* Claim guidance stepper */
+        .guide-card { border: 1px solid #eef2f6; border-radius: 12px; box-shadow: 0 6px 20px rgba(16,24,40,0.06); }
+        .guide-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid #eef2f6; background: linear-gradient(90deg,#f8fbff 0%,#ffffff 100%); }
+        .guide-header .icon { width:38px; height:38px; border-radius:10px; background:#e7f1ff; display:flex; align-items:center; justify-content:center; color:#0d6efd; box-shadow: 0 6px 16px rgba(13,110,253,0.15); }
+        .stepper { padding: 1rem 1.25rem; }
+        .step { display:flex; gap:.75rem; align-items:flex-start; padding:.5rem 0; }
+        .step-index { flex:0 0 28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; color:#0d6efd; background:#e7f1ff; box-shadow: 0 6px 16px rgba(13,110,253,0.12); }
+        .step-body { flex:1; }
+        .step-title { font-weight:600; color:#1f2937; margin:0; }
+        .step-desc { color:#6b7280; font-size:.9rem; margin: .15rem 0 0; }
+        .step-muted { opacity:.7; }
+        .note-badge { display:inline-flex; align-items:center; gap:.4rem; padding:.3rem .6rem; border-radius:999px; background:#f1f5f9; color:#334155; font-size:.75rem; font-weight:600; }
+        /* Upgraded claim box */
+        .claim-card-upgraded { border: 1px solid #eef2f6; border-radius: 14px; overflow:hidden; box-shadow: 0 12px 30px rgba(16,24,40,0.08); }
+        .claim-card-upgraded .header { background: linear-gradient(135deg,#0d6efd 0%, #4dabf7 100%); color:#fff; padding: 1rem 1.25rem; display:flex; align-items:center; gap:.6rem; }
+        .claim-card-upgraded .header .icon { width:34px; height:34px; border-radius:8px; background: rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; }
+        .claim-card-upgraded .body { padding: 1rem 1.25rem 1.25rem; background:#fff; }
+        .help-text { font-size:.85rem; color:#64748b; }
+        .form-floating textarea { min-height: 120px; }
+        .btn-claim { background: linear-gradient(135deg,#0d6efd,#4dabf7); border:none; box-shadow: 0 10px 22px rgba(13,110,253,0.18); }
+        .btn-claim:hover { filter: brightness(.97); }
     </style>
 </head>
 <body>
@@ -245,7 +266,7 @@ try {
                                         <div class="fw-medium">Name</div>
                                         <div><?php echo htmlspecialchars($item['full_name']); ?></div>
                                     </div>
-                                    <?php if ($isOwner || !empty($item['show_contact'])): ?>
+                                    <?php if ($isOwner || $itemType === 'lost' || !empty($item['show_contact'])): ?>
                                         <div class="col-md-6 mb-2">
                                             <div class="fw-medium">Email</div>
                                             <div><?php echo htmlspecialchars($item['email']); ?></div>
@@ -258,9 +279,16 @@ try {
                                         <?php endif; ?>
                                     <?php else: ?>
                                         <div class="col-12">
-                                            <div class="alert alert-info mb-0">
-                                                <i class="bi bi-info-circle-fill me-1"></i>
-                                                Contact information will be shared if the owner accepts your claim.
+                                            <div class="alert mb-0" style="background: linear-gradient(135deg, #e7f1ff 0%, #f0f8ff 100%); border: 1px solid #b8daff; border-radius: 8px; padding: 0.85rem 1rem;">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #0d6efd; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                                        <i class="bi bi-shield-lock text-white" style="font-size: 0.9rem;"></i>
+                                                    </div>
+                                                    <div style="color: #004085; font-size: 0.9rem;">
+                                                        <strong>Contact info protected</strong><br>
+                                                        <span style="font-size: 0.85rem; opacity: 0.85;">Details will be shared once your claim is accepted.</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     <?php endif; ?>
@@ -272,78 +300,101 @@ try {
                     </div>
                 </div>
                 <div class="col-lg-4">
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">Item Status</h5>
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="me-3">
-                                    <div class="bg-light rounded-circle p-3">
-                                        <i class="bi bi-info-circle text-primary" style="font-size: 1.5rem;"></i>
+                    <!-- Claim Guidance -->
+                    <div class="guide-card mb-4">
+                        <div class="guide-header">
+                            <div class="icon"><i class="bi bi-<?php echo $itemType === 'lost' ? 'telephone' : 'flag'; ?>"></i></div>
+                            <div>
+                                <div class="fw-semibold"><?php echo $itemType === 'lost' ? 'How to Contact' : 'How to Claim'; ?></div>
+                                <div class="text-muted small"><?php echo $itemType === 'lost' ? 'Reach out to the reporter' : 'Follow these simple steps'; ?></div>
+                            </div>
+                            <div class="ms-auto">
+                                <span class="note-badge"><i class="bi bi-shield-check"></i> Safe & Fair</span>
+                            </div>
+                        </div>
+                        <div class="stepper">
+                            <?php if ($itemType === 'lost'): ?>
+                                <div class="step">
+                                    <div class="step-index">1</div>
+                                    <div class="step-body">
+                                        <p class="step-title">Found this item?</p>
+                                        <p class="step-desc">Check if you have information about or found an item matching this description.</p>
                                     </div>
                                 </div>
-                                <div>
-                                    <h6 class="mb-0">
-                                        <?php 
-                                        if ($isOwner) {
-                                            echo 'You reported this item as ' . $itemType . '.';
-                                        } else {
-                                            echo 'This item is currently marked as ' . $item['status'] . '.';
-                                        }
-                                        ?>
-                                    </h6>
-                                    <small class="text-muted">
-                                        <?php 
-                                        if ($item['status'] === 'pending' || $item['status'] === 'available') {
-                                            echo 'The owner is looking for the rightful owner.';
-                                        } elseif ($item['status'] === 'claimed' || $item['status'] === 'returned') {
-                                            echo 'This item has been claimed by someone.';
-                                        } elseif ($item['status'] === 'resolved') {
-                                            echo 'This case has been resolved.';
-                                        }
-                                        ?>
-                                    </small>
+                                <div class="step">
+                                    <div class="step-index">2</div>
+                                    <div class="step-body">
+                                        <p class="step-title">Contact the owner</p>
+                                        <p class="step-desc">Use the email or phone provided below to reach out directly.</p>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <?php if ($itemType === 'found' && !$isOwner): ?>
-                                <div class="alert alert-info mt-3">
-                                    <i class="bi bi-lightbulb-fill me-1"></i>
-                                    <strong>Tip:</strong> Found something? Be honest and provide accurate details to help reunite it with its owner.
+                                <div class="step">
+                                    <div class="step-index">3</div>
+                                    <div class="step-body">
+                                        <p class="step-title">Share info or return item</p>
+                                        <p class="step-desc">Tell them what you know or arrange to hand back their lost item.</p>
+                                    </div>
                                 </div>
+                            <?php else: ?>
+                                <div class="step">
+                                    <div class="step-index">1</div>
+                                    <div class="step-body">
+                                        <p class="step-title">Review item details</p>
+                                        <p class="step-desc">Confirm the category, location, and date match your missing item.</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-index">2</div>
+                                    <div class="step-body">
+                                        <p class="step-title">Provide proof</p>
+                                        <p class="step-desc">Describe unique identifiers (serials, marks, contents) only you would know.</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-index">3</div>
+                                    <div class="step-body">
+                                        <p class="step-title">Submit your claim</p>
+                                        <p class="step-desc">Our team shares your details with the reporter to verify ownership.</p>
+                                    </div>
+                                </div>
+                                <?php if (!$userCanClaim): ?>
+                                    <div class="step step-muted">
+                                        <div class="step-index"><i class="bi bi-lock"></i></div>
+                                        <div class="step-body">
+                                            <p class="step-title">Claims not available</p>
+                                            <p class="step-desc">This item is currently <strong><?php echo htmlspecialchars($item['status']); ?></strong>. Claiming may be closed.</p>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>
                     
-                    <!-- Submit Claim form (moved here to give quick access on the right column) -->
+                    <!-- Submit Claim form (upgraded) -->
                     <?php if ($userCanClaim): ?>
-                        <div class="card mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">Claim This Item</h5>
+                        <div class="claim-card-upgraded mb-4">
+                            <div class="header">
+                                <div class="icon"><i class="bi bi-clipboard-check"></i></div>
+                                <div>
+                                    <div class="fw-semibold">Claim This Item</div>
+                                    <div class="small" style="opacity:.9">Provide details to verify ownership</div>
+                                </div>
+                            </div>
+                            <div class="body">
                                 <?php if ($success): ?>
                                     <div class="alert alert-success mb-3">
                                         <?php echo htmlspecialchars($success); ?>
                                     </div>
                                 <?php else: ?>
                                     <form method="POST" action="">
-                                        <div class="mb-3">
-                                            <label for="claim_description_side" class="form-label">Why do you think this is your item? *</label>
-                                            <textarea class="form-control" id="claim_description_side" name="claim_description" rows="4" required
-                                                      placeholder="Provide identifying marks, when you lost it, and any other helpful details."></textarea>
-                                            <div class="form-text">Be specific to help the owner verify the claim.</div>
+                                        <div class="form-floating mb-3">
+                                            <textarea class="form-control" id="claim_description_side" name="claim_description" placeholder="Describe identifying marks" required></textarea>
+                                            <label for="claim_description_side">Why is this your item? *</label>
                                         </div>
-                                        <button type="submit" name="claim_item" class="btn btn-primary w-100">Submit Claim</button>
+                                        <div class="help-text mb-3"><i class="bi bi-shield-lock me-1"></i>Your claim is shared only with the item reporter for verification.</div>
+                                        <button type="submit" name="claim_item" class="btn btn-claim w-100 text-white">Submit Claim</button>
                                     </form>
                                 <?php endif; ?>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">Need Help?</h5>
-                                <p>If you have any questions or need assistance, please contact our support team.</p>
-                                <a href="../contact.php" class="btn btn-outline-primary w-100">
-                                    <i class="bi bi-envelope-fill me-1"></i> Contact Support
-                                </a>
                             </div>
                         </div>
                     <?php endif; ?>
