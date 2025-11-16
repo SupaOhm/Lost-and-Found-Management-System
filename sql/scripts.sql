@@ -429,7 +429,7 @@ BEGIN
         (
             (CASE WHEN l.category = f.category THEN 3 ELSE 0 END) +
             (CASE WHEN l.location = f.location THEN 2 ELSE 0 END) +
-            (CASE WHEN DATEDIFF(f.found_date, l.lost_date) BETWEEN 0 AND 7 THEN 2 ELSE 0 END) +
+            (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 30 THEN 2 ELSE 0 END) +
             (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 2 ELSE 0 END)
         ) AS match_score
     FROM LostItem l
@@ -443,8 +443,7 @@ BEGIN
     WHERE l.user_id = p_user_id
     AND l.status = 'pending'
     AND f.status = 'available'
-    AND l.lost_date <= f.found_date
-    HAVING match_score >= 3
+    HAVING match_score >= 2
     ORDER BY match_score DESC, f.found_date DESC
     LIMIT 10;
 END$$
@@ -461,7 +460,7 @@ BEGIN
             (
                 (CASE WHEN l.category = f.category THEN 3 ELSE 0 END) +
                 (CASE WHEN l.location = f.location THEN 2 ELSE 0 END) +
-                (CASE WHEN DATEDIFF(f.found_date, l.lost_date) BETWEEN 0 AND 7 THEN 2 ELSE 0 END) +
+                (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 30 THEN 2 ELSE 0 END) +
                 (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 2 ELSE 0 END)
             ) AS match_score
         FROM LostItem l
@@ -474,8 +473,7 @@ BEGIN
         WHERE l.user_id = p_user_id
         AND l.status = 'pending'
         AND f.status = 'available'
-        AND l.lost_date <= f.found_date
-        HAVING match_score >= 3
+        HAVING match_score >= 2
     ) as matches;
 END$$
 
@@ -507,7 +505,7 @@ BEGIN
         (
             (CASE WHEN l.category = f.category THEN 3 ELSE 0 END) +
             (CASE WHEN l.location = f.location THEN 2 ELSE 0 END) +
-            (CASE WHEN DATEDIFF(f.found_date, l.lost_date) BETWEEN 0 AND 7 THEN 2 ELSE 0 END) +
+            (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 30 THEN 2 ELSE 0 END) +
             (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 2 ELSE 0 END)
         ) AS match_score
     FROM LostItem l
