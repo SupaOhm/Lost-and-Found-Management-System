@@ -210,8 +210,7 @@ $total_notification_count = $match_count + $claim_notification_count;
                             <i class="bi bi-info-circle"></i>
                         </div>
                         <h3>Report Lost Item</h3>
-                        <p>Can't find something valuable? Report it here with details and photos to increase chances of
-                            recovery.</p>
+                        <p>Lost something? Post details to help others find it.</p>
                     </a>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -220,8 +219,7 @@ $total_notification_count = $match_count + $claim_notification_count;
                             <i class="bi bi-file-earmark-text"></i>
                         </div>
                         <h3>Report Found Item</h3>
-                        <p>Found something that doesn't belong to you? Help reunite it with its owner by reporting it
-                            here.</p>
+                        <p>Found something? List it so the owner can claim.</p>
                     </a>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -230,7 +228,7 @@ $total_notification_count = $match_count + $claim_notification_count;
                             <i class="bi bi-search"></i>
                         </div>
                         <h3>Search Database</h3>
-                        <p>Browse through lost and found items in our database. Filter by category, location, or date.</p>
+                        <p>Find lost or found items by category or location.</p>
                     </a>
                 </div>
             </div>
@@ -243,6 +241,11 @@ $total_notification_count = $match_count + $claim_notification_count;
             <h2 class="cta-title">Track Your Reports</h2>
             <p class="cta-text">You can see your reports and claims here.</p>
             <a href="claim.php" class="btn btn-cta">View Your Claims & Reports</a>
+            <style>
+                .btn-cta:hover {
+                    color: #fff !important;
+                }
+            </style>
         </div>
     </section>
     
