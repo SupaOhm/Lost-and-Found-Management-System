@@ -348,16 +348,14 @@ $total_notification_count = $match_count + $claim_notification_count + $found_cl
                     <div class="footer-links">
                         <h5>Contact Us</h5>
                         <ul>
-                            <li><i class="bi bi-envelope me-2"></i> help@lostfound.com</li>
-                            <li><i class="bi bi-telephone me-2"></i> +1 (555) 123-4567</li>
-                            <li><i class="bi bi-geo-alt me-2"></i> 123 Community St, City</li>
+                            <li><i class="bi bi-people-fill me-2"></i> Group6 </li>
+                            <li><i class="bi bi-person-workspace me-2"></i> CSS326 Section 7</li>
+                            <li><i class="bi bi-geo-alt me-2"></i> SIIT</li>
                         </ul>
                     </div>
                 </div>
             </div>
-            <div class="copyright">
-                <p>&copy; <?php echo date('Y'); ?> Lost&Found. All rights reserved.</p>
-            </div>
+            
         </div>
     </footer>
 
