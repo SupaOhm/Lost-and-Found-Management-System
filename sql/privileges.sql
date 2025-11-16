@@ -12,8 +12,8 @@ FLUSH PRIVILEGES;
 
 CREATE USER user_user IDENTIFIED BY 'user_password';
 GRANT SELECT ON lost_found_db.* TO user_user;
-GRANT INSERT, DELETE ON lost_found_db.LostItem TO user_user;
-GRANT INSERT, DELETE ON lost_found_db.FoundItem TO user_user;
+GRANT INSERT, DELETE, UPDATE ON lost_found_db.LostItem TO user_user;
+GRANT INSERT, DELETE, UPDATE ON lost_found_db.FoundItem TO user_user;
 GRANT INSERT, DELETE ON lost_found_db.ClaimRequest TO user_user;
 GRANT UPDATE ON lost_found_db.User TO user_user;
 FLUSH PRIVILEGES;

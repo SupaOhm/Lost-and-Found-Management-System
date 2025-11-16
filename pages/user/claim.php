@@ -132,6 +132,10 @@ try {
         if (!isset($item['created_at']) || !$item['created_at']) {
             $item['created_at'] = '';
         }
+        // Map primary key to unified item_id for UI actions
+        if (isset($item['lost_id']) && !isset($item['item_id'])) {
+            $item['item_id'] = $item['lost_id'];
+        }
     }
     unset($item);
 
@@ -146,6 +150,10 @@ try {
         $item['image_path'] = null;
         if (!isset($item['created_at']) || !$item['created_at']) {
             $item['created_at'] = '';
+        }
+        // Map primary key to unified item_id for UI actions
+        if (isset($item['found_id']) && !isset($item['item_id'])) {
+            $item['item_id'] = $item['found_id'];
         }
     }
     unset($item);
@@ -181,6 +189,12 @@ try {
             }
             if (!isset($item['created_at']) || $item['created_at'] === null) {
                 $item['created_at'] = '';
+            }
+            // Ensure unified item_id exists after merge for both lost and found items
+            if ($item['item_type'] === 'lost' && isset($item['lost_id'])) {
+                $item['item_id'] = $item['lost_id'];
+            } elseif ($item['item_type'] === 'found' && isset($item['found_id'])) {
+                $item['item_id'] = $item['found_id'];
             }
         }
         unset($item);
