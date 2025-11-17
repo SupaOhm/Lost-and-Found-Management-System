@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->closeCursor();
 
         $success = 'Password updated successfully. Redirecting...';
-        header('Refresh: 2; URL=userprofile.php');
+        header('Refresh: 1; URL=userprofile.php');
 
     } catch (Exception $e) {
         $error = $e->getMessage();

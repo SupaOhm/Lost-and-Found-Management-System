@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         $stmt->closeCursor();
 
         $success = 'Profile updated successfully. Redirecting...';
-        header('Refresh: 2; URL=userprofile.php');
+        header('Refresh: 1; URL=userprofile.php');
 
         // reload user data
         $stmt = $pdo->prepare("CALL GetUserById(?)");
