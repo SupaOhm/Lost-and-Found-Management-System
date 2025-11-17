@@ -316,7 +316,7 @@ try {
                                                     </div>
                                                     <div style="color: #004085; font-size: 0.9rem;">
                                                         <strong>Contact info protected</strong><br>
-                                                        <span style="font-size: 0.85rem; opacity: 0.85;">Details will be shared once your claim is accepted.</span>
+                                                        <span style="font-size: 0.85rem; opacity: 0.85;">Details will be shared once your claim is approved.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -331,7 +331,7 @@ try {
                                         <?php if (!empty($claimer_info['phone'])): ?>
                                             <div class="mb-1"><strong>Phone:</strong> <?php echo htmlspecialchars($claimer_info['phone']); ?></div>
                                         <?php endif; ?>
-                                        <div class="mt-2 text-muted" style="font-size:.95em;">This person claimed your item and their contact info is shown because the claim was accepted.</div>
+                                        <div class="mt-2 text-muted" style="font-size:.95em;">This person claimed your item and their contact info is shown because the claim was approved.</div>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -366,7 +366,7 @@ try {
                                     <div class="step-index">2</div>
                                     <div class="step-body">
                                         <p class="step-title">Contact the owner</p>
-                                        <p class="step-desc">Use the email or phone provided below to reach out directly.</p>
+                                        <p class="step-desc">Use the email or phone provided to reach out directly.</p>
                                     </div>
                                 </div>
                                 <div class="step">
