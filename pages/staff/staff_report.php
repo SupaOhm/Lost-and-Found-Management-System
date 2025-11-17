@@ -10,11 +10,7 @@ if (isset($_GET['delete'])) {
     
     try {
         if ($type === 'lost') {
-            // First delete any claims associated with this lost item
-            $stmt = $pdo->prepare("DELETE FROM ClaimRequest WHERE lost_id = ?");
-            $stmt->execute([$id]);
-            
-            // Then delete the lost item
+            // Delete the lost item (no claims are associated with lost items)
             $stmt = $pdo->prepare("DELETE FROM LostItem WHERE lost_id = ?");
             $stmt->execute([$id]);
             $success = "Lost item deleted successfully!";
@@ -25,7 +21,7 @@ if (isset($_GET['delete'])) {
             $stmt->execute([$id]);
             
             // Then delete the found item
-            $stmt = $pdo->prepare(query: "DELETE FROM FoundItem WHERE found_id = ?");
+            $stmt = $pdo->prepare("DELETE FROM FoundItem WHERE found_id = ?");
             $stmt->execute([$id]);
             $success = "Found item deleted successfully!";
         }

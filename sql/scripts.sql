@@ -160,28 +160,93 @@ BEGIN
     ORDER BY c.claim_date DESC;
 END$$
 
--- Approve Claim (Admin)
+-- View Processed Claims (Admin/Staff)
+CREATE PROCEDURE ViewProcessedClaimsWithDetails()
+BEGIN
+    SELECT c.claim_id,
+           u.username AS requester,
+           c.description AS claim_description,
+           c.claim_date,
+           c.status,
+           c.approved_date,
+           c.approver_id,
+           c.approver_type,
+           f.found_id,
+           f.item_name,
+           f.description,
+           f.category,
+           f.location,
+           f.found_date,
+           CASE 
+               WHEN c.approver_type = 'admin' THEN a.username
+               WHEN c.approver_type = 'staff' THEN s.username
+               ELSE 'Unknown'
+           END AS approver_name
+    FROM ClaimRequest c
+    LEFT JOIN User u ON c.user_id = u.user_id
+    LEFT JOIN FoundItem f ON c.found_id = f.found_id
+    LEFT JOIN Admin a ON c.approver_id = a.admin_id AND c.approver_type = 'admin'
+    LEFT JOIN Staff s ON c.approver_id = s.staff_id AND c.approver_type = 'staff'
+    WHERE c.status IN ('approved', 'rejected')
+    ORDER BY c.approved_date DESC;
+END$$
+
+-- View Processed Claims by Staff (Staff specific)
+CREATE PROCEDURE ViewStaffProcessedClaims(
+    IN p_staff_id BIGINT
+)
+BEGIN
+    SELECT c.claim_id,
+           u.username AS requester,
+           c.description AS claim_description,
+           c.claim_date,
+           c.status,
+           c.approved_date,
+           c.approver_id,
+           c.approver_type,
+           f.found_id,
+           f.item_name,
+           f.description,
+           f.category,
+           f.location,
+           f.found_date,
+           s.username AS approver_name
+    FROM ClaimRequest c
+    LEFT JOIN User u ON c.user_id = u.user_id
+    LEFT JOIN FoundItem f ON c.found_id = f.found_id
+    LEFT JOIN Staff s ON c.approver_id = s.staff_id AND c.approver_type = 'staff'
+    WHERE c.status IN ('approved', 'rejected')
+    AND c.approver_type = 'staff'
+    AND c.approver_id = p_staff_id
+    ORDER BY c.approved_date DESC;
+END$$
+
+-- Approve Claim (Admin or Staff)
 CREATE PROCEDURE ApproveClaim(
     IN p_claim_id BIGINT,
-    IN p_admin_id BIGINT
+    IN p_approver_id BIGINT,
+    IN p_approver_type ENUM('admin', 'staff')
 )
 BEGIN
     UPDATE ClaimRequest
     SET status = 'approved',
-        approved_by = p_admin_id,
+        approver_id = p_approver_id,
+        approver_type = p_approver_type,
         approved_date = NOW()
     WHERE claim_id = p_claim_id;
 END$$
 
--- Reject Claim (Admin)
+-- Reject Claim (Admin or Staff)
 CREATE PROCEDURE RejectClaim(
     IN p_claim_id BIGINT,
-    IN p_admin_id BIGINT
+    IN p_approver_id BIGINT,
+    IN p_approver_type ENUM('admin', 'staff')
 )
 BEGIN
     UPDATE ClaimRequest
     SET status = 'rejected',
-        approved_by = p_admin_id,
+        approver_id = p_approver_id,
+        approver_type = p_approver_type,
         approved_date = NOW()
     WHERE claim_id = p_claim_id;
 END$$
@@ -539,6 +604,28 @@ BEGIN
             -- Do NOT update other claims here; handled in PHP to avoid MySQL error 1442
         END IF;
     END IF;
+END$$
+
+
+-- before admin delete user
+CREATE TRIGGER before_user_delete
+BEFORE DELETE ON User
+FOR EACH ROW
+BEGIN
+    -- Delete all claims on this user's found items (from any user)
+    DELETE FROM ClaimRequest 
+    WHERE found_id IN (
+        SELECT found_id FROM FoundItem WHERE user_id = OLD.user_id
+    );
+    
+    -- Delete user's own claims
+    DELETE FROM ClaimRequest WHERE user_id = OLD.user_id;
+    
+    -- Delete user's found items
+    DELETE FROM FoundItem WHERE user_id = OLD.user_id;
+    
+    -- Delete user's lost items
+    DELETE FROM LostItem WHERE user_id = OLD.user_id;
 END$$
 
 delimiter ;

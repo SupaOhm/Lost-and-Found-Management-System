@@ -3,38 +3,54 @@ require_once '../../config/adminconfig.php';
 
 // Handle delete user
 if (isset($_GET['delete_user'])) {
-    $user_id = $_GET['delete_user'];
+    $user_id = (int)$_GET['delete_user'];
     
-    // Delete user's claims first
-    $pdo->query("DELETE FROM ClaimRequest WHERE user_id = $user_id");
-    // Delete user's lost items
-    $pdo->query("DELETE FROM LostItem WHERE user_id = $user_id");
-    // Delete user's found items
-    $pdo->query("DELETE FROM FoundItem WHERE user_id = $user_id");
-    // Delete the user
-    $pdo->query("DELETE FROM User WHERE user_id = $user_id");
-    
-    $message = "User deleted successfully!";
+    try {
+        // Delete the user - trigger will handle cascade deletion
+        $stmt = $pdo->prepare("DELETE FROM User WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        
+        $message = "User deleted successfully!";
+        
+        // Redirect to avoid resubmission
+        header("Location: admin_users.php?success=" . urlencode($message));
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error deleting user: " . $e->getMessage();
+    }
 }
 
 // Get all users
 $users = $pdo->query("SELECT * FROM User ORDER BY created_at DESC")->fetchAll();
 
+// Display success message from redirect
+if (isset($_GET['success'])) {
+    $message = $_GET['success'];
+}
+
 // Get user details if viewing
 $user_details = null;
 if (isset($_GET['view_user'])) {
     require_once '../../includes/functions.php';
-    $user_id = $_GET['view_user'];
-    $user_details = $pdo->query("SELECT * FROM User WHERE user_id = $user_id")->fetch();
+    $user_id = (int)$_GET['view_user'];
+    $stmt = $pdo->prepare("SELECT * FROM User WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $user_details = $stmt->fetch();
     if ($user_details && isset($user_details['phone'])) {
         $user_details['phone'] = decrypt_phone($user_details['phone']);
     }
     // Get user's lost items count
-    $lost_count = $pdo->query("SELECT COUNT(*) FROM LostItem WHERE user_id = $user_id")->fetchColumn();
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM LostItem WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $lost_count = $stmt->fetchColumn();
     // Get user's found items count
-    $found_count = $pdo->query("SELECT COUNT(*) FROM FoundItem WHERE user_id = $user_id")->fetchColumn();
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM FoundItem WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $found_count = $stmt->fetchColumn();
     // Get user's claims count
-    $claims_count = $pdo->query("SELECT COUNT(*) FROM ClaimRequest WHERE user_id = $user_id")->fetchColumn();
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM ClaimRequest WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $claims_count = $stmt->fetchColumn();
 }
 ?>
 
@@ -89,6 +105,13 @@ if (isset($_GET['view_user'])) {
                 <?php if (isset($message)): ?>
                     <div class="alert alert-success alert-dismissible fade show">
                         <?php echo $message; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($error)): ?>
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        <?php echo $error; ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>

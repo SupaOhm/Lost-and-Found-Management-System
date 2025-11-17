@@ -2,9 +2,9 @@
 require_once '../../config/adminconfig.php';
 
 // Handle delete actions
-if (isset($_GET['delete'])) {
+if (isset($_GET['delete']) && isset($_GET['type']) && isset($_GET['id'])) {
     $type = $_GET['type'];
-    $id = $_GET['id'];
+    $id = (int)$_GET['id'];
     
     try {
         if ($type === 'lost') {
@@ -23,7 +23,7 @@ if (isset($_GET['delete'])) {
             $stmt->execute([$id]);
             
             // Then delete the found item
-            $stmt = $pdo->prepare(query: "DELETE FROM FoundItem WHERE found_id = ?");
+            $stmt = $pdo->prepare("DELETE FROM FoundItem WHERE found_id = ?");
             $stmt->execute([$id]);
             $success = "Found item deleted successfully!";
         }

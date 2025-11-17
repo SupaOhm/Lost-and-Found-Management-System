@@ -41,10 +41,10 @@ INSERT INTO FoundItem (user_id, item_name, description, category, location, foun
 (6, 'Yellow Book', 'Found near the bus stop.', 'Stationery', 'Bus Stop', '2025-11-09', 'available');
 
 -- Claim Requests
-INSERT INTO ClaimRequest (found_id, user_id, description, status, claim_date, approved_by, approved_date) VALUES
-(1, 2, 'I believe this watch is mine; it has a distinct scratch.', 'pending', '2025-11-03', NULL, NULL),
-(2, 3, 'This umbrella belongs to me; it has a sticker.', 'pending', '2025-11-05', NULL, NULL),
-(3, 4, 'I lost my cap in the cafeteria.', 'pending', '2025-11-07', NULL, NULL),
-(4, 5, 'That green bag is mine.', 'pending', '2025-11-08', NULL, NULL),
-(5, 6, 'Those glasses are mine.', 'pending', '2025-11-09', NULL, NULL),
-(6, 1, 'I lost a yellow book near the bus stop.', 'pending', '2025-11-10', NULL, NULL);
+INSERT INTO ClaimRequest (found_id, user_id, description, status, claim_date, approver_id, approver_type, approved_date) VALUES
+(1, 2, 'I believe this watch is mine; it has a distinct scratch.', 'pending', '2025-11-03', NULL, NULL, NULL),
+(2, 3, 'This umbrella belongs to me; it has a sticker.', 'pending', '2025-11-05', NULL, NULL, NULL),
+(3, 4, 'I lost my cap in the cafeteria.', 'pending', '2025-11-07', NULL, NULL, NULL),
+(4, 5, 'That green bag is mine.', 'pending', '2025-11-08', NULL, NULL, NULL),
+(5, 6, 'Those glasses are mine.', 'pending', '2025-11-09', NULL, NULL, NULL),
+(6, 1, 'I lost a yellow book near the bus stop.', 'pending', '2025-11-10', NULL, NULL, NULL);

@@ -11,8 +11,8 @@ if (isset($_POST['approve_claim'])) {
     
     try {
         // Approve the claim
-        $stmt = $pdo->prepare("CALL ApproveClaim(?, ?)");
-        $stmt->execute([$claim_id, $staffId]);
+        $stmt = $pdo->prepare("CALL ApproveClaim(?, ?, ?)");
+        $stmt->execute([$claim_id, $staffId, 'staff']);
         $stmt->closeCursor();
 
         // Get found_id for this claim
@@ -23,7 +23,7 @@ if (isset($_POST['approve_claim'])) {
 
         // Reject all other pending claims for the same found item
         if ($foundId) {
-            $rejectStmt = $pdo->prepare("UPDATE ClaimRequest SET status = 'rejected', approved_by = ?, approved_date = NOW() WHERE found_id = ? AND claim_id != ? AND status = 'pending'");
+            $rejectStmt = $pdo->prepare("UPDATE ClaimRequest SET status = 'rejected', approver_id = ?, approver_type = 'staff', approved_date = NOW() WHERE found_id = ? AND claim_id != ? AND status = 'pending'");
             $rejectStmt->execute([$staffId, $foundId, $claim_id]);
             $rejectStmt->closeCursor();
         }
@@ -39,8 +39,8 @@ if (isset($_POST['reject_claim'])) {
     $claim_id = isset($_POST['claim_id']) ? (int)$_POST['claim_id'] : 0;
     
     try {
-        $stmt = $pdo->prepare("CALL RejectClaim(?, ?)");
-        $stmt->execute([$claim_id, $staffId]);
+        $stmt = $pdo->prepare("CALL RejectClaim(?, ?, ?)");
+        $stmt->execute([$claim_id, $staffId, 'staff']);
         $stmt->closeCursor();
         $success = "Claim rejected successfully!";
     } catch (Exception $e) {
@@ -57,6 +57,16 @@ try {
 } catch (PDOException $e) {
     $pending_claims = [];
     $error = "Database error: " . $e->getMessage();
+}
+
+// Get processed claims by this staff member
+try {
+    $stmt = $pdo->prepare("CALL ViewStaffProcessedClaims(?)");
+    $stmt->execute([$staffId]);
+    $processed_claims = $stmt->fetchAll();
+    $stmt->closeCursor();
+} catch (PDOException $e) {
+    $processed_claims = [];
 }
 ?>
 
@@ -99,7 +109,10 @@ try {
             <div class="admin-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2>Manage Claims</h2>
-                    <span class="badge bg-warning text-dark"><?php echo count($pending_claims); ?> Pending Claims</span>
+                    <div>
+                        <span class="badge bg-warning text-dark me-2"><?php echo count($pending_claims); ?> Pending</span>
+                        <span class="badge bg-secondary"><?php echo count($processed_claims); ?> My Processed</span>
+                    </div>
                 </div>
 
                 <?php if (isset($success)): ?>
@@ -190,6 +203,80 @@ try {
                                 <i class="bi bi-clipboard-check"></i>
                                 <h4 class="text-muted mt-3">No Pending Claims</h4>
                                 <p class="text-muted">All claims have been processed.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- My Processed Claims Section -->
+                <div class="admin-card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">My Processed Claims History</h5>
+                    </div>
+                    <div class="card-body">
+                        <?php if (count($processed_claims) > 0): ?>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Claim ID</th>
+                                            <th>Claimant</th>
+                                            <th>Claim Details</th>
+                                            <th>Found Item</th>
+                                            <th>Status</th>
+                                            <th>Date Processed</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($processed_claims as $claim): 
+                                            $status_badge = ($claim['status'] == 'approved') ? 'bg-success' : 'bg-danger';
+                                            $status_icon = ($claim['status'] == 'approved') ? 'check-circle-fill' : 'x-circle-fill';
+                                        ?>
+                                            <tr>
+                                                <td>#<?php echo $claim['claim_id']; ?></td>
+                                                <td><?php echo htmlspecialchars($claim['requester']); ?></td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        <?php 
+                                                        if (!empty($claim['claim_description'])) {
+                                                            $desc = htmlspecialchars($claim['claim_description']);
+                                                            echo strlen($desc) > 50 ? substr($desc, 0, 50) . '...' : $desc;
+                                                        } else {
+                                                            echo 'No details provided.';
+                                                        }
+                                                        ?>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <div class="small">
+                                                        <strong><?php echo htmlspecialchars($claim['item_name']); ?></strong><br>
+                                                        <span class="text-muted"><?php echo htmlspecialchars($claim['category']); ?> • <?php echo htmlspecialchars($claim['location']); ?></span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge <?php echo $status_badge; ?>">
+                                                        <i class="bi bi-<?php echo $status_icon; ?>"></i>
+                                                        <?php echo ucfirst($claim['status']); ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <?php 
+                                                    if ($claim['approved_date']) {
+                                                        echo date('M j, Y', strtotime($claim['approved_date'])) . '<br>';
+                                                        echo '<small class="text-muted">' . date('g:i A', strtotime($claim['approved_date'])) . '</small>';
+                                                    }
+                                                    ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="bi bi-clock-history"></i>
+                                <h4 class="text-muted mt-3">No Processed Claims</h4>
+                                <p class="text-muted">You haven't processed any claims yet.</p>
                             </div>
                         <?php endif; ?>
                     </div>

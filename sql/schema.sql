@@ -71,9 +71,9 @@ CREATE TABLE ClaimRequest (
     user_id BIGINT,
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     claim_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    approved_by BIGINT NULL,
+    approver_id BIGINT NULL,
+    approver_type ENUM('admin', 'staff') NULL,
     approved_date DATETIME NULL,
     FOREIGN KEY (found_id) REFERENCES FoundItem(found_id),
-    FOREIGN KEY (user_id) REFERENCES User(user_id),
-    FOREIGN KEY (approved_by) REFERENCES Admin(admin_id)
+    FOREIGN KEY (user_id) REFERENCES User(user_id)
 );

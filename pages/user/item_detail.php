@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once '../../config/userconfig.php';
-
 require_once '../../includes/functions.php'; // for decrypt_phone
 
 // Check if user is logged in
