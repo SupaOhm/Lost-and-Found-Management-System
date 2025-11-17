@@ -601,7 +601,6 @@ BEGIN
         IF NEW.found_id IS NOT NULL THEN
             -- When a claim on a found item is approved, mark the found item as returned
             UPDATE FoundItem SET status = 'returned' WHERE found_id = NEW.found_id;
-            -- Do NOT update other claims here; handled in PHP to avoid MySQL error 1442
         END IF;
     END IF;
 END$$
@@ -612,19 +611,10 @@ CREATE TRIGGER before_user_delete
 BEFORE DELETE ON User
 FOR EACH ROW
 BEGIN
-    -- Delete all claims on this user's found items (from any user)
     DELETE FROM ClaimRequest 
-    WHERE found_id IN (
-        SELECT found_id FROM FoundItem WHERE user_id = OLD.user_id
-    );
-    
-    -- Delete user's own claims
+    WHERE found_id IN (SELECT found_id FROM FoundItem WHERE user_id = OLD.user_id);
     DELETE FROM ClaimRequest WHERE user_id = OLD.user_id;
-    
-    -- Delete user's found items
     DELETE FROM FoundItem WHERE user_id = OLD.user_id;
-    
-    -- Delete user's lost items
     DELETE FROM LostItem WHERE user_id = OLD.user_id;
 END$$
 
