@@ -43,14 +43,22 @@ if (isset($_GET['view_report'])) {
     $view_id_parts = explode('_', $_GET['view_report']);
     if (count($view_id_parts) === 2) {
         $view_type = $view_id_parts[0];
-        $view_item_id = $view_id_parts[1];
+        $view_item_id = (int)$view_id_parts[1];
         
         if ($view_type === 'lost') {
-            $viewing_report = $pdo->query("SELECT * FROM LostItem WHERE lost_id = $view_item_id")->fetch();
-            $viewing_report['type'] = 'lost';
+            $stmt = $pdo->prepare("SELECT * FROM LostItem WHERE lost_id = ?");
+            $stmt->execute([$view_item_id]);
+            $viewing_report = $stmt->fetch();
+            if ($viewing_report) {
+                $viewing_report['type'] = 'lost';
+            }
         } elseif ($view_type === 'found') {
-            $viewing_report = $pdo->query("SELECT * FROM FoundItem WHERE found_id = $view_item_id")->fetch();
-            $viewing_report['type'] = 'found';
+            $stmt = $pdo->prepare("SELECT * FROM FoundItem WHERE found_id = ?");
+            $stmt->execute([$view_item_id]);
+            $viewing_report = $stmt->fetch();
+            if ($viewing_report) {
+                $viewing_report['type'] = 'found';
+            }
         }
     }
 }
@@ -60,29 +68,50 @@ if (isset($_GET['success'])) {
     $success = $_GET['success'];
 }
 
-// Get all reports (lost and found items)
+// Get filter values
+$filter_type = isset($_GET['type']) ? $_GET['type'] : '';
+$filter_status = isset($_GET['status']) ? $_GET['status'] : '';
+
+// Get all reports (lost and found items) with filters
 try {
     $reports = [];
     
-    // Get lost items
-    $stmt = $pdo->query("
-        SELECT 'lost' as type, lost_id as id, item_name, description, category, location, 
-               lost_date as item_date, status, created_at, user_id
-        FROM LostItem 
-        ORDER BY created_at DESC
-    ");
-    $lost_items = $stmt->fetchAll();
+    // Build WHERE clause for filters
+    $where_conditions = [];
     
-    // Get found items
-    $stmt = $pdo->query("
-        SELECT 'found' as type, found_id as id, item_name, description, category, location, 
-               found_date as item_date, status, created_at, user_id
-        FROM FoundItem 
-        ORDER BY created_at DESC
-    ");
-    $found_items = $stmt->fetchAll();
+    if ($filter_status) {
+        if ($filter_status === 'pending') {
+            $where_conditions[] = "(status = 'pending' OR status = 'available')";
+        } elseif ($filter_status === 'claimed') {
+            $where_conditions[] = "(status = 'claimed' OR status = 'returned')";
+        }
+    }
     
-    $reports = array_merge($lost_items, $found_items);
+    $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
+    
+    // Get lost items (if filter allows)
+    if ($filter_type === '' || $filter_type === 'lost') {
+        $sql = "SELECT 'lost' as type, lost_id as id, item_name, description, category, location, 
+                   lost_date as item_date, status, created_at, user_id
+            FROM LostItem 
+            $where_clause
+            ORDER BY created_at DESC";
+        $stmt = $pdo->query($sql);
+        $lost_items = $stmt->fetchAll();
+        $reports = array_merge($reports, $lost_items);
+    }
+    
+    // Get found items (if filter allows)
+    if ($filter_type === '' || $filter_type === 'found') {
+        $sql = "SELECT 'found' as type, found_id as id, item_name, description, category, location, 
+                   found_date as item_date, status, created_at, user_id
+            FROM FoundItem 
+            $where_clause
+            ORDER BY created_at DESC";
+        $stmt = $pdo->query($sql);
+        $found_items = $stmt->fetchAll();
+        $reports = array_merge($reports, $found_items);
+    }
     
     // Sort by creation date
     usort($reports, function($a, $b) {
@@ -164,6 +193,20 @@ function get_username_by_id($pdo, $user_id) {
                     <div class="alert alert-danger alert-dismissible fade show">
                         <?php echo $error; ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Active Filters Display -->
+                <?php if ($filter_type || $filter_status): ?>
+                    <div class="alert alert-info alert-dismissible fade show">
+                        <strong>Active Filters:</strong>
+                        <?php if ($filter_type): ?>
+                            <span class="badge bg-primary"><?php echo ucfirst($filter_type); ?> Items</span>
+                        <?php endif; ?>
+                        <?php if ($filter_status): ?>
+                            <span class="badge bg-primary"><?php echo ucfirst($filter_status); ?></span>
+                        <?php endif; ?>
+                        <a href="admin_report.php" class="btn btn-sm btn-outline-secondary ms-2">Clear Filters</a>
                     </div>
                 <?php endif; ?>
 
@@ -300,7 +343,7 @@ function get_username_by_id($pdo, $user_id) {
                             <div class="empty-state">
                                 <i class="bi bi-file-earmark-text"></i>
                                 <h4>No Reports Found</h4>
-                                <p>No lost or found items have been reported yet.</p>
+                                <p><?php echo ($filter_type || $filter_status) ? 'No reports match your filter criteria.' : 'No lost or found items have been reported yet.'; ?></p>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -322,17 +365,17 @@ function get_username_by_id($pdo, $user_id) {
                         <div class="mb-3">
                             <label class="form-label">Item Type</label>
                             <select name="type" class="form-select">
-                                <option value="">All Types</option>
-                                <option value="lost">Lost Items</option>
-                                <option value="found">Found Items</option>
+                                <option value="" <?php echo $filter_type === '' ? 'selected' : ''; ?>>All Types</option>
+                                <option value="lost" <?php echo $filter_type === 'lost' ? 'selected' : ''; ?>>Lost Items</option>
+                                <option value="found" <?php echo $filter_type === 'found' ? 'selected' : ''; ?>>Found Items</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-select">
-                                <option value="">All Status</option>
-                                <option value="pending">Pending/Available</option>
-                                <option value="claimed">Claimed/Returned</option>
+                                <option value="" <?php echo $filter_status === '' ? 'selected' : ''; ?>>All Status</option>
+                                <option value="pending" <?php echo $filter_status === 'pending' ? 'selected' : ''; ?>>Pending/Available</option>
+                                <option value="claimed" <?php echo $filter_status === 'claimed' ? 'selected' : ''; ?>>Claimed/Returned</option>
                             </select>
                         </div>
                     </form>

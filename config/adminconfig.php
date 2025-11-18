@@ -1,7 +1,7 @@
 <?php
 // Database configuration
 $db_host = 'localhost';
-$db_port = '8889';
+$db_port = '8889'; // Replace with your mysql port
 $db_name = 'lost_found_db';
 $db_user = 'admin_user';
 $db_pass = 'admin_password';

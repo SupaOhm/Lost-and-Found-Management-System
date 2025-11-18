@@ -445,6 +445,12 @@ BEGIN
     ORDER BY cr.claim_date DESC;
 END$$
 
+
+
+-- =============================================
+-- ADMIN & STAFF MANAGEMENT PROCEDURES
+-- =============================================
+
 CREATE PROCEDURE VerifyAdminLogin(IN p_username VARCHAR(50))
 BEGIN
     SELECT admin_id, username, password FROM Admin WHERE username = p_username LIMIT 1;
@@ -455,10 +461,6 @@ CREATE PROCEDURE GetAdminById(IN p_admin_id BIGINT)
 BEGIN
     SELECT admin_id, username, email, created_at FROM Admin WHERE admin_id = p_admin_id LIMIT 1;
 END$$
-
--- =============================================
--- STAFF MANAGEMENT PROCEDURES
--- =============================================
 
 -- Stored procedure to verify staff login
 CREATE PROCEDURE VerifyStaffLogin(IN p_username VARCHAR(50))
@@ -515,6 +517,7 @@ BEGIN
     AND f.status = 'available'
     HAVING match_score >= 2
     ORDER BY match_score DESC, f.found_date DESC
+    LIMIT 10;
 END$$
 
 -- Get match count for user
@@ -545,47 +548,6 @@ BEGIN
         HAVING match_score >= 2
     ) as matches;
 END$$
-
--- Get detailed match information
-CREATE PROCEDURE GetMatchDetails(
-    IN p_lost_id BIGINT,
-    IN p_found_id BIGINT
-)
-BEGIN
-    SELECT 
-        l.lost_id,
-        l.item_name AS lost_item_name,
-        l.description AS lost_description,
-        l.category AS lost_category,
-        l.location AS lost_location,
-        l.lost_date,
-        l.user_id AS lost_by_user_id,
-        lu.username AS lost_by_username,
-        lu.email AS lost_by_email,
-        f.found_id,
-        f.item_name AS found_item_name,
-        f.description AS found_description,
-        f.category AS found_category,
-        f.location AS found_location,
-        f.found_date,
-        f.user_id AS found_by_user_id,
-        fu.username AS found_by_username,
-        fu.email AS found_by_email,
-        (
-            (CASE WHEN l.category = f.category THEN 2 ELSE 0 END) +
-            (CASE WHEN l.location = f.location THEN 2 ELSE 0 END) +
-            (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 7 THEN 2 ELSE 0 END) +
-            (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 4 ELSE 0 END)
-        ) AS match_score
-    FROM LostItem l
-    INNER JOIN FoundItem f ON l.lost_id = p_lost_id AND f.found_id c= p_found_id
-    LEFT JOIN User lu ON l.user_id = lu.user_id
-    LEFT JOIN User fu ON f.user_id = fu.user_id
-    WHERE l.status = 'pending'
-    AND f.status = 'available';
-END$$
-
-
 
 -- =============================================
 -- TRIGGERS

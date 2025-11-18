@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container">
         <div class="form-container">
-            <h2 class="form-title">Welcome Back to <span class="text-primary">Lost&Found</span></h2>
+            <h2 class="form-title">Welcome to <br><span class="text-primary">Lost&Found</span></h2>
             
             <?php if ($error): ?>
                 <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>

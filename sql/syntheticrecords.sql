@@ -2,7 +2,7 @@
 -- Synthetic records for Lost & Found Management System
 USE lost_found_db;
 
--- Users (passwords hashed, phones encrypted as hex)
+-- Users password is 'user1234'
 INSERT INTO User (username, password, email, phone) VALUES
 ('alice', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'alice@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
 ('bob', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'bob@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
@@ -10,11 +10,12 @@ INSERT INTO User (username, password, email, phone) VALUES
 ('diana', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'diana@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
 ('edward', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'edward@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
 ('fiona', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'fiona@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09');
--- Admins (password hashed)
+
+-- Admins password is 'admin123'
 INSERT INTO Admin (username, password, email) VALUES
 ('admin', '$2y$10$TzAzmz1sLVwY/eAbdKx2desbdQj.y2mCoJdAIm26jqttGZDZ8pvUe', 'admin1@example.com');
 
--- Staff (passwords hashed, phones encrypted as hex)
+-- Staff password is 'staff123'
 INSERT INTO Staff (username, password, email, full_name, phone) VALUES
 ('staff1', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff1@mail.com', 'Staff One', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
 ('staff2', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff2@mail.com', 'Staff Two', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
@@ -22,6 +23,7 @@ INSERT INTO Staff (username, password, email, full_name, phone) VALUES
 ('staff4', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff4@mail.com', 'Staff Four', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
 ('staff5', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff5@mail.com', 'Staff Five', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
 ('staff6', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff6@mail.com', 'Staff Six', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09');
+
 -- Lost Items
 INSERT INTO LostItem (user_id, item_name, description, category, location, lost_date, status) VALUES
 (1, 'Black Wallet', 'Lost near the library. Contains ID and cards.', 'Accessories', 'Library', '2025-11-01', 'pending'),
