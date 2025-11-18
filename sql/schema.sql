@@ -46,9 +46,6 @@ CREATE TABLE Staff (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Stored procedure to verify admin login
-
-
 -- FOUND ITEM TABLE
 CREATE TABLE FoundItem (
     found_id BIGINT AUTO_INCREMENT PRIMARY KEY,

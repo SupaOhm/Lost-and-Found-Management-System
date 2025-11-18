@@ -497,10 +497,10 @@ BEGIN
         u.username AS finder_username,
         -- Calculate match score based on various factors
         (
-            (CASE WHEN l.category = f.category THEN 3 ELSE 0 END) +
+            (CASE WHEN l.category = f.category THEN 2 ELSE 0 END) +
             (CASE WHEN l.location = f.location THEN 2 ELSE 0 END) +
-            (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 30 THEN 2 ELSE 0 END) +
-            (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 2 ELSE 0 END)
+            (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 7 THEN 2 ELSE 0 END) +
+            (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 4 ELSE 0 END)
         ) AS match_score
     FROM LostItem l
     INNER JOIN FoundItem f ON (
@@ -515,7 +515,6 @@ BEGIN
     AND f.status = 'available'
     HAVING match_score >= 2
     ORDER BY match_score DESC, f.found_date DESC
-    LIMIT 10;
 END$$
 
 -- Get match count for user
@@ -528,10 +527,10 @@ BEGIN
         SELECT 
             l.lost_id,
             (
-                (CASE WHEN l.category = f.category THEN 3 ELSE 0 END) +
+                (CASE WHEN l.category = f.category THEN 2 ELSE 0 END) +
                 (CASE WHEN l.location = f.location THEN 2 ELSE 0 END) +
                 (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 30 THEN 2 ELSE 0 END) +
-                (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 2 ELSE 0 END)
+                (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 4 ELSE 0 END)
             ) AS match_score
         FROM LostItem l
         INNER JOIN FoundItem f ON (
@@ -573,13 +572,13 @@ BEGIN
         fu.username AS found_by_username,
         fu.email AS found_by_email,
         (
-            (CASE WHEN l.category = f.category THEN 3 ELSE 0 END) +
+            (CASE WHEN l.category = f.category THEN 2 ELSE 0 END) +
             (CASE WHEN l.location = f.location THEN 2 ELSE 0 END) +
-            (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 30 THEN 2 ELSE 0 END) +
-            (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 2 ELSE 0 END)
+            (CASE WHEN ABS(DATEDIFF(f.found_date, l.lost_date)) <= 7 THEN 2 ELSE 0 END) +
+            (CASE WHEN l.item_name LIKE CONCAT('%', f.item_name, '%') OR f.item_name LIKE CONCAT('%', l.item_name, '%') THEN 4 ELSE 0 END)
         ) AS match_score
     FROM LostItem l
-    INNER JOIN FoundItem f ON l.lost_id = p_lost_id AND f.found_id = p_found_id
+    INNER JOIN FoundItem f ON l.lost_id = p_lost_id AND f.found_id c= p_found_id
     LEFT JOIN User lu ON l.user_id = lu.user_id
     LEFT JOIN User fu ON f.user_id = fu.user_id
     WHERE l.status = 'pending'
@@ -607,7 +606,7 @@ END$$
 
 
 -- before admin delete user
-CREATE TRIGGER before_user_delete
+CREATE TRIGGER BeforeUserDelete
 BEFORE DELETE ON User
 FOR EACH ROW
 BEGIN
