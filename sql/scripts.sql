@@ -616,7 +616,7 @@ BEGIN
     END IF;
 END$$
 
--- before admin delete user
+-- before deleting a user, delete associated lost items, found items, and claims
 CREATE TRIGGER BeforeUserDelete
 BEFORE DELETE ON User
 FOR EACH ROW
