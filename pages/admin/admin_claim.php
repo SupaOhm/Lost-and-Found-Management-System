@@ -23,7 +23,7 @@ if (isset($_POST['approve_claim'])) {
 
         // Reject all other pending claims for the same found item
         if ($foundId) {
-            $rejectStmt = $pdo->prepare("UPDATE ClaimRequest SET status = 'rejected', approver_id = ?, approver_type = 'admin', approved_date = NOW() WHERE found_id = ? AND claim_id != ? AND status = 'pending'");
+            $rejectStmt = $pdo->prepare("UPDATE ClaimRequest SET status = 'rejected', admin_approver_id = ?, approved_date = NOW() WHERE found_id = ? AND claim_id != ? AND status = 'pending'");
             $rejectStmt->execute([$adminId, $foundId, $claim_id]);
             $rejectStmt->closeCursor();
         }
@@ -269,8 +269,8 @@ try {
                                                 <td>
                                                     <div class="small">
                                                         <strong><?php echo htmlspecialchars($claim['approver_name']); ?></strong><br>
-                                                        <span class="badge badge-sm <?php echo $claim['approver_type'] == 'admin' ? 'bg-primary' : 'bg-info'; ?>">
-                                                            <?php echo ucfirst($claim['approver_type']); ?>
+                                                        <span class="badge badge-sm <?php echo isset($claim['approver_type']) && $claim['approver_type'] == 'admin' ? 'bg-primary' : 'bg-info'; ?>">
+                                                            <?php echo isset($claim['approver_type']) ? ucfirst($claim['approver_type']) : 'N/A'; ?>
                                                         </span>
                                                     </div>
                                                 </td>

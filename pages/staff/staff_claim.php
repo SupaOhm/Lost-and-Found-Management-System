@@ -23,7 +23,7 @@ if (isset($_POST['approve_claim'])) {
 
         // Reject all other pending claims for the same found item
         if ($foundId) {
-            $rejectStmt = $pdo->prepare("UPDATE ClaimRequest SET status = 'rejected', approver_id = ?, approver_type = 'staff', approved_date = NOW() WHERE found_id = ? AND claim_id != ? AND status = 'pending'");
+            $rejectStmt = $pdo->prepare("UPDATE ClaimRequest SET status = 'rejected', staff_approver_id = ?, approved_date = NOW() WHERE found_id = ? AND claim_id != ? AND status = 'pending'");
             $rejectStmt->execute([$staffId, $foundId, $claim_id]);
             $rejectStmt->closeCursor();
         }

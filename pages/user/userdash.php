@@ -85,19 +85,11 @@ try {
 $claim_notifications = [];
 $claim_notification_count = 0;
 try {
-    $stmt = $pdo->prepare("
-        SELECT c.claim_id, c.status, c.approved_date, f.item_name, f.category
-        FROM ClaimRequest c
-        JOIN FoundItem f ON c.found_id = f.found_id
-        WHERE c.user_id = ? 
-        AND c.status IN ('approved', 'rejected')
-        AND c.approved_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        ORDER BY c.approved_date DESC
-        LIMIT 5
-    ");
+    $stmt = $pdo->prepare("CALL GetUserClaimNotifications(?)");
     $stmt->execute([$_SESSION['user_id']]);
     $claim_notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $claim_notification_count = count($claim_notifications);
+    $stmt->closeCursor();
 } catch (PDOException $e) {
     error_log("Claim notification error: " . $e->getMessage());
 }
@@ -106,20 +98,11 @@ try {
 $found_claim_notifications = [];
 $found_claim_notification_count = 0;
 try {
-    $stmt = $pdo->prepare("
-        SELECT c.claim_id, c.approved_date, u.username AS claimer_name, u.email AS claimer_email, u.phone AS claimer_phone, f.item_name, f.found_id
-        FROM ClaimRequest c
-        JOIN User u ON c.user_id = u.user_id
-        JOIN FoundItem f ON c.found_id = f.found_id
-        WHERE f.user_id = ?
-        AND c.status = 'approved'
-        AND c.approved_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        ORDER BY c.approved_date DESC
-        LIMIT 5
-    ");
+    $stmt = $pdo->prepare("CALL GetFoundItemClaimNotifications(?)");
     $stmt->execute([$_SESSION['user_id']]);
     $found_claim_notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $found_claim_notification_count = count($found_claim_notifications);
+    $stmt->closeCursor();
 } catch (PDOException $e) {
     error_log("Found claim notification error: " . $e->getMessage());
 }

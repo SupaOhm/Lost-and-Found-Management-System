@@ -40,20 +40,6 @@ CREATE TABLE FoundItem (
     FOREIGN KEY (user_id) REFERENCES User(user_id)
 );
 
--- CLAIM REQUEST TABLE
-CREATE TABLE ClaimRequest (
-    claim_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    found_id BIGINT,
-    description VARCHAR(500),
-    user_id BIGINT,
-    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-    claim_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    approver_id BIGINT NULL,
-    approver_type ENUM('admin', 'staff') NULL,
-    approved_date DATETIME NULL,
-    FOREIGN KEY (found_id) REFERENCES FoundItem(found_id),
-    FOREIGN KEY (user_id) REFERENCES User(user_id)
-);
 
 -- ADMIN TABLE
 CREATE TABLE Admin (
@@ -73,4 +59,21 @@ CREATE TABLE Staff (
     full_name VARCHAR(100),
     phone VARBINARY(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CLAIM REQUEST TABLE
+CREATE TABLE ClaimRequest (
+    claim_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    found_id BIGINT,
+    description VARCHAR(500),
+    user_id BIGINT,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    claim_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    admin_approver_id BIGINT NULL,
+    staff_approver_id BIGINT NULL,
+    approved_date DATETIME NULL,
+    FOREIGN KEY (found_id) REFERENCES FoundItem(found_id),
+    FOREIGN KEY (user_id) REFERENCES User(user_id),
+    FOREIGN KEY (admin_approver_id) REFERENCES Admin(admin_id),
+    FOREIGN KEY (staff_approver_id) REFERENCES Staff(staff_id)
 );

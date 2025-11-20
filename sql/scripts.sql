@@ -1,5 +1,4 @@
 delimiter $$
-
 -- =============================================
 -- USER MANAGEMENT PROCEDURES
 -- =============================================
@@ -169,24 +168,25 @@ BEGIN
            c.claim_date,
            c.status,
            c.approved_date,
-           c.approver_id,
-           c.approver_type,
+           c.admin_approver_id,
+           c.staff_approver_id,
+           CASE 
+               WHEN c.admin_approver_id IS NOT NULL THEN 'admin'
+               WHEN c.staff_approver_id IS NOT NULL THEN 'staff'
+               ELSE NULL
+           END AS approver_type,
            f.found_id,
            f.item_name,
            f.description,
            f.category,
            f.location,
            f.found_date,
-           CASE 
-               WHEN c.approver_type = 'admin' THEN a.username
-               WHEN c.approver_type = 'staff' THEN s.username
-               ELSE 'Unknown'
-           END AS approver_name
+           COALESCE(a.username, s.username, 'Unknown') AS approver_name
     FROM ClaimRequest c
     LEFT JOIN User u ON c.user_id = u.user_id
     LEFT JOIN FoundItem f ON c.found_id = f.found_id
-    LEFT JOIN Admin a ON c.approver_id = a.admin_id AND c.approver_type = 'admin'
-    LEFT JOIN Staff s ON c.approver_id = s.staff_id AND c.approver_type = 'staff'
+    LEFT JOIN Admin a ON c.admin_approver_id = a.admin_id
+    LEFT JOIN Staff s ON c.staff_approver_id = s.staff_id
     WHERE c.status IN ('approved', 'rejected')
     ORDER BY c.approved_date DESC;
 END$$
@@ -202,8 +202,8 @@ BEGIN
            c.claim_date,
            c.status,
            c.approved_date,
-           c.approver_id,
-           c.approver_type,
+           c.staff_approver_id,
+           'staff' AS approver_type,
            f.found_id,
            f.item_name,
            f.description,
@@ -214,10 +214,9 @@ BEGIN
     FROM ClaimRequest c
     LEFT JOIN User u ON c.user_id = u.user_id
     LEFT JOIN FoundItem f ON c.found_id = f.found_id
-    LEFT JOIN Staff s ON c.approver_id = s.staff_id AND c.approver_type = 'staff'
+    LEFT JOIN Staff s ON c.staff_approver_id = s.staff_id
     WHERE c.status IN ('approved', 'rejected')
-    AND c.approver_type = 'staff'
-    AND c.approver_id = p_staff_id
+    AND c.staff_approver_id = p_staff_id
     ORDER BY c.approved_date DESC;
 END$$
 
@@ -228,12 +227,19 @@ CREATE PROCEDURE ApproveClaim(
     IN p_approver_type ENUM('admin', 'staff')
 )
 BEGIN
-    UPDATE ClaimRequest
-    SET status = 'approved',
-        approver_id = p_approver_id,
-        approver_type = p_approver_type,
-        approved_date = NOW()
-    WHERE claim_id = p_claim_id;
+    IF p_approver_type = 'admin' THEN
+        UPDATE ClaimRequest
+        SET status = 'approved',
+            admin_approver_id = p_approver_id,
+            approved_date = NOW()
+        WHERE claim_id = p_claim_id;
+    ELSE
+        UPDATE ClaimRequest
+        SET status = 'approved',
+            staff_approver_id = p_approver_id,
+            approved_date = NOW()
+        WHERE claim_id = p_claim_id;
+    END IF;
 END$$
 
 -- Reject Claim (Admin or Staff)
@@ -243,12 +249,19 @@ CREATE PROCEDURE RejectClaim(
     IN p_approver_type ENUM('admin', 'staff')
 )
 BEGIN
-    UPDATE ClaimRequest
-    SET status = 'rejected',
-        approver_id = p_approver_id,
-        approver_type = p_approver_type,
-        approved_date = NOW()
-    WHERE claim_id = p_claim_id;
+    IF p_approver_type = 'admin' THEN
+        UPDATE ClaimRequest
+        SET status = 'rejected',
+            admin_approver_id = p_approver_id,
+            approved_date = NOW()
+        WHERE claim_id = p_claim_id;
+    ELSE
+        UPDATE ClaimRequest
+        SET status = 'rejected',
+            staff_approver_id = p_approver_id,
+            approved_date = NOW()
+        WHERE claim_id = p_claim_id;
+    END IF;
 END$$
 
 -- =============================================
@@ -547,6 +560,43 @@ BEGIN
         AND f.status = 'available'
         HAVING match_score >= 2
     ) as matches;
+END$$
+
+-- =============================================
+-- NOTIFICATION PROCEDURES
+-- =============================================
+
+-- Get claim notifications for user (claims they made)
+CREATE PROCEDURE GetUserClaimNotifications(
+    IN p_user_id BIGINT
+)
+BEGIN
+    SELECT c.claim_id, c.status, c.approved_date, f.item_name, f.category
+    FROM ClaimRequest c
+    JOIN FoundItem f ON c.found_id = f.found_id
+    WHERE c.user_id = p_user_id 
+    AND c.status IN ('approved', 'rejected')
+    AND c.approved_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ORDER BY c.approved_date DESC
+    LIMIT 5;
+END$$
+
+-- Get notifications for found item owner when their item is claimed
+CREATE PROCEDURE GetFoundItemClaimNotifications(
+    IN p_user_id BIGINT
+)
+BEGIN
+    SELECT c.claim_id, c.approved_date, u.username AS claimer_name, 
+           u.email AS claimer_email, u.phone AS claimer_phone, 
+           f.item_name, f.found_id
+    FROM ClaimRequest c
+    JOIN User u ON c.user_id = u.user_id
+    JOIN FoundItem f ON c.found_id = f.found_id
+    WHERE f.user_id = p_user_id
+    AND c.status = 'approved'
+    AND c.approved_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ORDER BY c.approved_date DESC
+    LIMIT 5;
 END$$
 
 -- =============================================
