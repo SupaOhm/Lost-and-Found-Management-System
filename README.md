@@ -122,7 +122,7 @@ Lost-Found/
 - **User** — User accounts (username, email, encrypted phone, password, etc.)
 - **LostItem** — Lost item reports (item_name, description, status, etc.)
 - **FoundItem** — Found item reports (item_name, description, status, etc.)
-- **ClaimRequest** — Claims linking users to items (status: pending/approved/rejected)
+- **ClaimRequest** — Claims linking users to found items (status: pending/approved/rejected) with separate nullable approver foreign keys: `admin_approver_id` and `staff_approver_id` (replaces prior polymorphic `approver_id` + `approver_type` design)
 - **Admin** — Admin accounts
 - **Staff** — Staff accounts
 
@@ -136,9 +136,11 @@ Lost-Found/
 - `ReportFoundItem()` — Insert found item report
 - `ReportLostItem()` — Insert lost item report
 - `SubmitClaim()` — Submit a claim request
-- `ViewPendingClaims()` — Get pending claims with item details
-- `ApproveClaim()` — Approve a claim
-- `RejectClaim()` — Reject a claim
+- `ViewPendingClaimsWithFoundDetails()` — Get pending claims with associated found item
+- `ViewProcessedClaimsWithDetails()` — Approved / rejected claims incl. approver (admin/staff)
+- `ViewStaffProcessedClaims()` — Processed claims approved by a specific staff member
+- `ApproveClaim()` — Branching logic writes to `admin_approver_id` or `staff_approver_id`
+- `RejectClaim()` — Branching logic writes to `admin_approver_id` or `staff_approver_id`
 - `GetUserLostItems()` — Get user's lost items
 - `GetUserFoundItems()` — Get user's found items
 - `GetUserLostItemsCount()` — Count user's lost items
@@ -147,7 +149,8 @@ Lost-Found/
 - `GetUserClaimsCount()` — Count user's total claims
 - `FindPotentialMatches()` — Intelligent matching algorithm for lost/found items
 - `GetUserMatchCount()` — Count potential matches for user
-- `GetMatchDetails()` — Get detailed match information
+- `GetUserClaimNotifications()` — Recent approved/rejected claim decisions for user
+- `GetFoundItemClaimNotifications()` — Notifications for owners whose found items were claimed
 - `SearchItems()` — Search items with filters
 - `UpdateUserProfile()` — Update user profile information
 
@@ -232,10 +235,10 @@ Check `sql/syntheticrecords.sql` for test users created during database initiali
 
 ### Search & Discovery
 - **Intelligent Matching** — Automatic potential match detection based on:
-  - Category match (3 points)
+  - Category match (2 points)
   - Location match (2 points)
   - Date proximity within 30 days (2 points)
-  - Similar item names (2 points)
+  - Similar item names (4 points)
   - Minimum 2 points required for match notification
 - Search through all lost and found items in the database
 - Filter by category, location, date range, type, and status
@@ -295,7 +298,7 @@ Check `sql/syntheticrecords.sql` for test users created during database initiali
 ## Security Features
 
 - **Password Hashing** — All passwords hashed using PHP's password_hash (bcrypt)
-- **Phone Number Encryption** — Phone numbers encrypted using AES-256-CBC with automatic decryption for display
+- **Phone Number Encryption** — Phone numbers encrypted using AES-256-CBC with automatic decryption for display. Current implementation derives a static IV from the key; recommended enhancement: store a random 16‑byte IV prefixed to the ciphertext (e.g. `base64(iv + encrypted)`), then extract for decryption.
 - **Prepared Statements** — PDO prepared statements prevent SQL injection
 - **Session Management** — Secure session-based authentication
 - **Input Validation** — Server-side validation and sanitization
@@ -321,6 +324,7 @@ Check `sql/syntheticrecords.sql` for test users created during database initiali
 - Photo upload feature for items (currently text-only descriptions)
 - Email notifications not yet implemented
 - SMS notifications could be added using encrypted phone numbers
+- Random IV adoption for phone encryption (improves cryptographic robustness)
 - Two-factor authentication for enhanced security
 - Advanced analytics dashboard with charts and trends
 - Mobile app version under consideration
@@ -339,8 +343,30 @@ This project is licensed under the MIT License.
 
 For issues, feature requests, or support:
 - Create an issue on the repository
-- Contact: help@lostfound.local
+- Contact: ohm.supakornth@gmail.com
 
 ## Project Status
 
 🔄 **In Active Development** — Features and improvements are being added regularly.
+
+## Recent Updates (Changelog Snapshot)
+**Schema:** Introduced separate `admin_approver_id` and `staff_approver_id` columns in `ClaimRequest` replacing polymorphic approver pattern; added trigger `BeforeFoundItemDelete` to automatically remove related `ClaimRequest` rows before a `FoundItem` delete.
+
+**Triggers:**
+- `BeforeUserDelete` — Cleans up related claims, found items, lost items.
+- `BeforeFoundItemDelete` — Cleans up claims for the specific found item.
+
+**Procedures Added / Revised:**
+- `ViewProcessedClaimsWithDetails`, `ViewStaffProcessedClaims` reflect new approver column structure.
+- `GetUserClaimNotifications`, `GetFoundItemClaimNotifications` power dashboard bell notifications.
+- `ApproveClaim` / `RejectClaim` now route approver IDs into the correct dedicated column.
+
+**Report Filtering:** Admin and Staff report pages now support item type (lost/found) and status (pending/available vs claimed/returned) filters with active filter display and clear button.
+
+**Deletion Logic:** Application layer simplified—claim cleanup for found item deletion now handled by trigger instead of manual PHP deletion cascade.
+
+**Security Note:** Encryption section documents recommendation to migrate to per‑record random IV for phone number storage.
+
+**Consistency:** All view item and claim operations use prepared statements, reducing SQL injection surface.
+
+_Keep this section updated as further changes land._
