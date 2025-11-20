@@ -8,17 +8,13 @@ if (isset($_GET['delete']) && isset($_GET['type']) && isset($_GET['id'])) {
     
     try {
         if ($type === 'lost') {
-            // Delete the lost item directly (claims are only for found items)
+            // Delete the lost item
             $stmt = $pdo->prepare("DELETE FROM LostItem WHERE lost_id = ?");
             $stmt->execute([$id]);
             $success = "Lost item deleted successfully!";
             
         } elseif ($type === 'found') {
-            // First delete any claims associated with this found item
-            $stmt = $pdo->prepare("DELETE FROM ClaimRequest WHERE found_id = ?");
-            $stmt->execute([$id]);
-            
-            // Then delete the found item
+            // Delete the found item (trigger will handle claims)
             $stmt = $pdo->prepare("DELETE FROM FoundItem WHERE found_id = ?");
             $stmt->execute([$id]);
             $success = "Found item deleted successfully!";

@@ -616,7 +616,6 @@ BEGIN
     END IF;
 END$$
 
-
 -- before admin delete user
 CREATE TRIGGER BeforeUserDelete
 BEFORE DELETE ON User
@@ -627,6 +626,14 @@ BEGIN
     DELETE FROM ClaimRequest WHERE user_id = OLD.user_id;
     DELETE FROM FoundItem WHERE user_id = OLD.user_id;
     DELETE FROM LostItem WHERE user_id = OLD.user_id;
+END$$
+
+-- before deleting a found item, delete associated claims
+CREATE TRIGGER BeforeFoundItemDelete
+BEFORE DELETE ON FoundItem
+FOR EACH ROW
+BEGIN
+    DELETE FROM ClaimRequest WHERE found_id = OLD.found_id;
 END$$
 
 delimiter ;
