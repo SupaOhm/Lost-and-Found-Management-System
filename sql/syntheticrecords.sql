@@ -9,7 +9,8 @@ INSERT INTO User (username, password, email, phone) VALUES
 ('charlie', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'charlie@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
 ('diana', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'diana@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
 ('edward', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'edward@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
-('fiona', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'fiona@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09');
+('fiona', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'fiona@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
+('user', '$2y$10$t0PF6AJ5zjbeXUOI6th1B.XTDYNYFc0ysOowqSPd790/NemWts0d.', 'user@mail.com', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09');
 
 -- Admins password is 'admin123'
 INSERT INTO Admin (username, password, email) VALUES
@@ -17,12 +18,12 @@ INSERT INTO Admin (username, password, email) VALUES
 
 -- Staff password is 'staff123'
 INSERT INTO Staff (username, password, email, full_name, phone) VALUES
-('staff1', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff1@mail.com', 'Staff One', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
-('staff2', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff2@mail.com', 'Staff Two', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
-('staff3', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff3@mail.com', 'Staff Three', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
-('staff4', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff4@mail.com', 'Staff Four', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
-('staff5', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff5@mail.com', 'Staff Five', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
-('staff6', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff6@mail.com', 'Staff Six', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09');
+('staff', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff1@mail.com', 'Staff One', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
+('staff1', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff2@mail.com', 'Staff Two', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
+('staff2', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff3@mail.com', 'Staff Three', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
+('staff3', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff4@mail.com', 'Staff Four', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
+('staff4', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff5@mail.com', 'Staff Five', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09'),
+('staff5', '$2y$10$588zfCVVCMrCTShDlFcmju8Rgfr.l4cWDvZNLvJ4h.FUfgH4lWHQu', 'staff6@mail.com', 'Staff Six', 'dWF2ZDdjcFZXWG0rMDZwdlJvSCtEUT09');
 
 -- Lost Items
 INSERT INTO LostItem (user_id, item_name, description, category, location, lost_date, status) VALUES
